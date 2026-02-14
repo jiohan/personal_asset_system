@@ -1,0 +1,25 @@
+.codex/config.toml
+.env.mcp
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.next/
+
+# Java
+**/target/
+*.class
+
+# Misc
+*.log
