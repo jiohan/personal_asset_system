@@ -1,5 +1,8 @@
 .codex/config.toml
 .env.mcp
+.env
+**/.env
+**/.env.local
 
 # OS / editors
 .DS_Store
