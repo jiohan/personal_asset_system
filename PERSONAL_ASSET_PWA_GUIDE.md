@@ -107,6 +107,37 @@
 ## 5. 개발 시작 전 최소 설계 고정
 아래 4가지는 시작 전에 확정합니다.
 
+0. 도메인 원칙/용어 (Glossary & Invariants)
+- 거래 타입
+  - `INCOME`: 외부에서 자산이 유입되는 거래 (급여, 이자 등)
+  - `EXPENSE`: 외부로 자산이 유출되는 거래 (식비, 월세 등)
+  - `TRANSFER`: 내 계좌 간 이동 (A -> B). 전체 자산 총액 변화 없음
+- 금액/부호
+  - `amount`는 항상 양수 KRW 정수: `amount > 0`
+  - 부호는 `type`으로 결정한다. DB에 음수 금액을 저장하지 않는다.
+- 날짜
+  - 저장은 `LocalDate`(date-only)로 고정한다.
+  - CSV에 시간이 포함되어도 최종 저장은 `LocalDate`이며, 파싱 타임존(예: Asia/Seoul)을 명시한다.
+- 소프트 삭제
+  - `deletedAt`이 있는 거래는 기본 조회/리포트에서 제외한다.
+- 이체(TRANSFER) 원칙
+  - 현금흐름(총수입/총지출/순저축) 통계에서 `TRANSFER`는 제외한다.
+  - 계좌 잔액/추이 계산에는 `TRANSFER`를 포함한다.
+- 잔액 계산(저장 금지, 계산으로만)
+  - `currentBalance`는 저장하지 않고 계산한다.
+  - 계산 예시: `openingBalance + sum(signedAmount)` (소프트 삭제 제외)
+  - `signedAmount` 정의
+    - `INCOME`: `+amount`
+    - `EXPENSE`: `-amount`
+    - `TRANSFER`: 보내는 계좌(from)는 `-amount`, 받는 계좌(to)는 `+amount`
+- 통계 제외 플래그
+  - `excludeFromReports=true`인 거래는 "지출 통계"에서 제외한다.
+    - 예: 월별 총지출, 카테고리별 지출 Top N, 고정비/변동비 집계
+  - 단, 잔액 계산에는 포함한다. (실제 돈이 빠져나간 것은 사실이므로)
+- 인박스(검토함)
+  - `needsReview=true`인 거래는 인박스에 모아 일괄 검토/분류한다.
+  - `categoryId`가 NULL인 경우 기본적으로 `needsReview=true`로 간주한다.
+
 1. Account 필드(최소)
 - 이름
 - 타입(MVP): `CHECKING` | `SAVINGS` | `CASH` | `INVESTMENT`
@@ -128,6 +159,7 @@
 - 카테고리: `categoryId` (MVP에서는 NULL 허용, 미분류는 인박스로 보낸다)
 - 태그: 다중 태그(선택, MVP 포함 여부는 팀 결정)
 - 원본(수동/CSV)
+- 인박스 플래그: `needsReview` (기본값 false)
 - 통계 제외 플래그: `excludeFromReports` (기본값 false)
 - 삭제 여부(`deletedAt`)
 
@@ -153,8 +185,8 @@
 - 월별 기본
 - 계좌별/카테고리별 집계 포함
 - 총수입: `INCOME` 합(소프트 삭제 제외)
-- 총지출: `EXPENSE` 합(소프트 삭제 제외)
-- 순저축: `총수입-총지출` (이체는 포함하지 않음)
+- 총지출: `EXPENSE` 합(소프트 삭제 + `excludeFromReports=true` 제외)
+- 순저축: `총수입-총지출` (`TRANSFER`는 포함하지 않음)
 - 이체: `TRANSFER` 합은 별도 지표로 표시(수입/지출에 섞지 않음)
 - 투자이동(선택): `* -> INVESTMENT` 이체 합(회수는 `INVESTMENT -> *` 합)
 - 잔액 추이: 계좌 단위로는 이체 포함(입금/출금 + 이체 in/out 모두 반영)
