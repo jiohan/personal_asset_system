@@ -8,7 +8,7 @@
 command = "bash"
 args = [
   "-lc",
-  "set -a; [ -f ./.env.mcp ] && . ./.env.mcp; set +a; [ -n \"$CONTEXT7_API_KEY\" ] || { echo 'CONTEXT7_API_KEY is required (.env.mcp)' >&2; exit 1; }; npx -y @upstash/context7-mcp --api-key \"$CONTEXT7_API_KEY\""
+  "ENV_FILE=\"/home/jioha/projects/asset-management-system/.env.mcp\"; set -a; [ -f \"$ENV_FILE\" ] && . \"$ENV_FILE\"; set +a; [ -n \"$CONTEXT7_API_KEY\" ] || { echo 'CONTEXT7_API_KEY is required (.env.mcp)' >&2; exit 1; }; npx -y @upstash/context7-mcp --api-key \"$CONTEXT7_API_KEY\""
 ]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -29,7 +29,7 @@ tool_timeout_sec = 120
 command = "bash"
 args = [
   "-lc",
-  "set -a; [ -f ./.env.mcp ] && . ./.env.mcp; set +a; [ -n \"$GITHUB_PERSONAL_ACCESS_TOKEN\" ] || { echo 'GITHUB_PERSONAL_ACCESS_TOKEN is required (.env.mcp)' >&2; exit 1; }; GITHUB_PERSONAL_ACCESS_TOKEN=\"$GITHUB_PERSONAL_ACCESS_TOKEN\" GITHUB_TOKEN=\"$GITHUB_PERSONAL_ACCESS_TOKEN\" npx -y @modelcontextprotocol/server-github"
+  "ENV_FILE=\"/home/jioha/projects/asset-management-system/.env.mcp\"; set -a; [ -f \"$ENV_FILE\" ] && . \"$ENV_FILE\"; set +a; [ -n \"$GITHUB_PERSONAL_ACCESS_TOKEN\" ] || { echo 'GITHUB_PERSONAL_ACCESS_TOKEN is required (.env.mcp)' >&2; exit 1; }; GITHUB_PERSONAL_ACCESS_TOKEN=\"$GITHUB_PERSONAL_ACCESS_TOKEN\" GITHUB_TOKEN=\"$GITHUB_PERSONAL_ACCESS_TOKEN\" npx -y @modelcontextprotocol/server-github"
 ]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -38,7 +38,7 @@ tool_timeout_sec = 120
 command = "bash"
 args = [
   "-lc",
-  "set -a; [ -f ./.env.mcp ] && . ./.env.mcp; set +a; [ -n \"$TESTSPRITE_API_KEY\" ] || { echo 'TESTSPRITE_API_KEY is required (.env.mcp)' >&2; exit 1; }; API_KEY=\"$TESTSPRITE_API_KEY\" npx -y @testsprite/testsprite-mcp@latest"
+  "ENV_FILE=\"/home/jioha/projects/asset-management-system/.env.mcp\"; set -a; [ -f \"$ENV_FILE\" ] && . \"$ENV_FILE\"; set +a; [ -n \"$TESTSPRITE_API_KEY\" ] || { echo 'TESTSPRITE_API_KEY is required (.env.mcp)' >&2; exit 1; }; API_KEY=\"$TESTSPRITE_API_KEY\" npx -y @testsprite/testsprite-mcp@latest"
 ]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
