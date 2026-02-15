@@ -256,6 +256,8 @@
 - Money: `amount`는 KRW 원 단위 정수(`long`), 항상 양수
 - Date: `txDate`는 `"YYYY-MM-DD"` 문자열(`LocalDate`)
 - Soft delete: `deletedAt != null`은 기본 조회/리포트에서 제외
+- 인증: 기본적으로 모든 API는 인증 필요(세션 쿠키 기반)
+  - 예외: `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`
 
 ### 8.2 에러 규약(통일)
 - 422: Validation 실패(필수값 누락/형식 오류/상호배타 규칙 위반 포함)
@@ -526,3 +528,418 @@ commit 요청 예시(JSON)
   ]
 }
 ```
+
+---
+
+## 9. MVP DB 스키마 제약(반드시 DB에서 강제)
+MVP에서도 CSV/대량 입력/버그/수정 흐름이 들어오면 "불가능한 데이터"가 생기기 쉽다.
+아래 제약은 앱 레벨 검증만으로는 불안정하므로 DB 제약으로 같이 고정한다.
+
+### 9.1 transactions: 타입별 상호배타 + 금액/날짜 제약 (CHECK)
+핵심 목표: `type`과 컬럼 조합이 꼬인 데이터를 DB에 저장하지 못하게 한다.
+
+- `amount > 0`
+- `tx_date` NOT NULL (`DATE`)
+- `user_id` NOT NULL (계정 기반이면 필수)
+- `type=TRANSFER`
+  - `from_account_id`/`to_account_id` NOT NULL
+  - `account_id` IS NULL
+  - `from_account_id <> to_account_id`
+- `type in (INCOME, EXPENSE)`
+  - `account_id` NOT NULL
+  - `from_account_id`/`to_account_id` IS NULL
+
+Postgres CHECK 예시(요약)
+```sql
+-- amount > 0
+CHECK (amount > 0)
+
+-- type별 상호배타
+CHECK (
+  (type = 'TRANSFER' AND account_id IS NULL AND from_account_id IS NOT NULL AND to_account_id IS NOT NULL AND from_account_id <> to_account_id)
+  OR
+  (type IN ('INCOME','EXPENSE') AND account_id IS NOT NULL AND from_account_id IS NULL AND to_account_id IS NULL)
+)
+```
+
+### 9.2 exclude_from_reports: EXPENSE에서만 true 허용 (CHECK)
+정책: `excludeFromReports=true`는 "지출 통계"에서 제외하기 위한 플래그이며, 의미 있는 타입은 `EXPENSE`뿐이다.
+
+- `exclude_from_reports` NOT NULL DEFAULT false
+- `type != 'EXPENSE'`이면 `exclude_from_reports=false`만 허용
+
+Postgres CHECK 예시
+```sql
+CHECK (type = 'EXPENSE' OR exclude_from_reports = false)
+```
+
+### 9.3 soft delete: 기본 조회/리포트 필터 + 인덱스 패턴
+정책: 기본 조회/리포트는 항상 `deleted_at IS NULL`을 적용한다.
+
+쿼리 패턴(고정)
+- 기간 필터는 index-friendly 하게: `tx_date >= :from AND tx_date < :to`
+- 기본 필터: `deleted_at IS NULL`
+
+인덱스(최소 권장, Postgres)
+- 리포트/기간 조회: `tx_date` 기준 부분 인덱스
+- 계좌별 리스트: `account_id` + `tx_date` 부분 인덱스
+- 이체 포함 "계좌 관여" 조회 최적화가 필요해지면(나중):
+  - `from_account_id + tx_date` 인덱스와 `to_account_id + tx_date` 인덱스를 별도로 둔다.
+  - 계정 기반이면 위 인덱스들 앞에 `user_id`를 붙여서 `(user_id, ...)` 형태로 잡는 것을 권장한다.
+
+Postgres INDEX 예시(요약)
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tx_date_live
+ON transactions (user_id, tx_date)
+WHERE deleted_at IS NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tx_account_date_live
+ON transactions (user_id, account_id, tx_date)
+WHERE deleted_at IS NULL AND type IN ('INCOME','EXPENSE');
+
+-- 필요 시(TRANSFER 포함 accountId 필터 최적화)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tx_from_date_live
+ON transactions (user_id, from_account_id, tx_date)
+WHERE deleted_at IS NULL AND type = 'TRANSFER';
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tx_to_date_live
+ON transactions (user_id, to_account_id, tx_date)
+WHERE deleted_at IS NULL AND type = 'TRANSFER';
+```
+
+MVP 복잡도 경고
+- `CREATE INDEX CONCURRENTLY`는 운영에서 락을 줄이기 위한 옵션이다. MVP 로컬 개발/마이그레이션에서는 `CONCURRENTLY` 없이 시작해도 된다.
+- Flyway는 기본적으로 마이그레이션을 트랜잭션으로 실행한다.
+  - Postgres의 `CREATE INDEX CONCURRENTLY`는 트랜잭션 안에서 실행할 수 없으므로, 사용하려면 해당 마이그레이션을 "non-transactional"로 분리해야 한다.
+
+### 9.4 (권장) FK/기본값: 참조 무결성과 안전한 기본값
+MVP에서도 FK/기본값을 최소로 잡아두면 데이터가 더 안정적이다.
+
+참조 무결성(FK, 권장)
+- `accounts.user_id` -> `users.id`
+- `transactions.user_id` -> `users.id`
+- `transactions.account_id` -> `accounts.id` (INCOME/EXPENSE)
+- `transactions.from_account_id`/`to_account_id` -> `accounts.id` (TRANSFER)
+- `transactions.category_id` -> `categories.id` (NULL 허용)
+
+기본값(권장)
+- `needs_review` NOT NULL DEFAULT false
+- `exclude_from_reports` NOT NULL DEFAULT false
+- `deleted_at` DEFAULT NULL
+
+추가 CHECK(선택, 안전장치)
+- `category_id IS NULL`이면 `needs_review=true`만 허용
+  - 장점: CSV/배치가 category를 비워도 인박스로 자동 유도
+  - 단점: "미분류지만 검토 안 함" 같은 상태는 불가(대부분 필요 없음)
+
+---
+
+## 10. 리포트 정의서(1장): 지표가 곧 제품
+리포트 숫자의 "의미"를 프론트/백/DB/테스트에서 동일하게 만들기 위해, 아래 정의를 계약으로 고정한다.
+이 정의서가 바뀌면 제품이 바뀐 것으로 간주한다.
+
+### 10.1 공통 규칙(모든 리포트/카드에 적용)
+- 기간 필터: `from <= txDate < to` (inclusive start + exclusive end)
+- 소프트 삭제 제외: `deletedAt IS NULL`만 집계
+- 금액: `amount`는 항상 양수 KRW 정수이며, 부호는 `type`과 맥락(계좌 in/out)으로 해석
+- `TRANSFER`는 현금흐름(총수입/총지출/순저축) 집계에서 제외하고, "자금이동" 섹션에서만 집계
+- `excludeFromReports=true`는 지출 통계에서 제외하지만, 잔액/추이 계산에는 포함한다.
+
+### 10.2 대시보드 카드 정의(정의/포함/제외)
+| 카드 | 정의(수식) | 포함(필터) | 제외(필터) | 비고 |
+| --- | --- | --- | --- | --- |
+| 총수입 `totalIncome` | `sum(amount)` | `type=INCOME` | `TRANSFER`, `deletedAt!=null` | `excludeFromReports`는 INCOME에서 의미 없음 |
+| 총지출 `totalExpense` | `sum(amount)` | `type=EXPENSE` AND `excludeFromReports=false` | `TRANSFER`, `excludeFromReports=true`, `deletedAt!=null` | "지출 통계"의 기준값 |
+| 순저축 `netSaving` | `totalIncome - totalExpense` | 위 두 카드 정의 사용 | `TRANSFER` | 내부이동으로 왜곡되지 않게 고정 |
+| 자금이동 `transferVolume` | `sum(amount)` | `type=TRANSFER` | `deletedAt!=null` | 현금흐름과 분리된 "이동 규모" |
+| 인박스 `inboxCount` | `count(*)` | `needsReview=true` | `deletedAt!=null` | 분류/검토가 필요한 건수 |
+
+선택 카드(나중에 필요하면 추가)
+- 투자 유입 `investmentInflow`: `type=TRANSFER` AND `toAccount.type=INVESTMENT` 합
+- 투자 회수 `investmentOutflow`: `type=TRANSFER` AND `fromAccount.type=INVESTMENT` 합
+
+### 10.3 카테고리 리포트(지출 Top N) 정의
+카테고리별 지출은 "분류가 끝난 지출"만 집계한다.
+
+- 집계 대상: `type=EXPENSE` AND `excludeFromReports=false` AND `categoryId IS NOT NULL` AND `deletedAt IS NULL`
+- 정렬: `sum(amount)` 내림차순
+- 미분류 지출: `categoryId IS NULL` 또는 `needsReview=true`는 별도 카드/배지로만 표시(Top N에는 포함하지 않음)
+
+### 10.4 자금이동(TRANSFER) 리포트: MVP 집계 단위 확정
+MVP에서는 "계좌쌍별 집계"로 고정한다. (카테고리별은 보조 필터/라벨)
+
+- 집계 단위: `(fromAccountId, toAccountId)` 별 `sum(amount)`
+- 포함: `type=TRANSFER` AND `deletedAt IS NULL`
+- 표시 추천: from/to 계좌 이름 + 계좌 타입 + 합계 금액
+- 카테고리 사용
+  - `categoryId`는 TRANSFER에도 설정 가능
+  - 단, 현금흐름/지출 통계에는 절대 포함하지 않는다.
+
+API 응답 형태(권장)
+```json
+{
+  "from": "2026-02-01",
+  "to": "2026-03-01",
+  "items": [
+    { "fromAccountId": 1, "toAccountId": 2, "amount": 900000 }
+  ]
+}
+```
+
+### 10.5 리포트 정합성 체크(개발/테스트용)
+아래 케이스는 자동 테스트로 고정한다.
+
+1) `CHECKING -> INVESTMENT`로 300,000 TRANSFER
+- `totalExpense` 변화 없음
+- `transferVolume`은 +300,000
+
+2) EXPENSE 12,500 + `excludeFromReports=true`
+- `totalExpense`에는 포함되지 않음
+- 계좌 잔액 계산에는 포함(실제 돈은 나감)
+
+---
+
+## 11. CSV Import 규칙(MVP): 파싱/매핑/중복/상태
+CSV는 포맷이 제각각이라 초기에 가장 자주 터진다. MVP에서도 아래 규칙은 문서로 고정한다.
+
+### 11.1 지원 범위(MVP)
+- 기본 지원: `INCOME`/`EXPENSE` 가져오기
+- `TRANSFER` 가져오기(선택): from/to 계좌를 확실히 매핑할 수 있을 때만 지원
+  - from/to 정보가 모호하면 TRANSFER는 수동 입력으로 처리(지출 왜곡 방지 우선)
+
+### 11.2 컬럼 매핑 표준(필수/옵션)
+CSV 한 행을 Transaction으로 만들기 위한 최소 요건을 고정한다.
+
+필수(최소)
+- `txDate` (최종 저장은 `LocalDate`)
+- `amount` (KRW 정수)
+- `description` (없으면 빈 문자열로 보정)
+- 계좌 매핑
+  - `INCOME/EXPENSE`: `accountId`를 결정할 수 있어야 한다.
+  - `TRANSFER`(지원 시): `fromAccountId`/`toAccountId`를 결정할 수 있어야 한다.
+
+계좌 매핑 정책(MVP 권장)
+- CSV에 계좌명이 포함된 경우, preview 단계에서 "계좌명 -> accountId" 매핑을 사용자에게 요구한다.
+- 매핑되지 않은 계좌명이 남아 있으면 commit을 막는다(422) 또는 해당 행을 에러로 분리한다(정책 선택).
+- 자동으로 계좌를 생성하는 기능은 MVP에서 보류(의도치 않은 계좌 난립 방지).
+
+옵션
+- `type` (없으면 금액 부호 등으로 추론)
+- `categoryId` (없으면 인박스)
+- `tagNames` (없으면 빈 배열)
+- `excludeFromReports` (없으면 false)
+
+### 11.3 날짜 파싱 규칙(LocalDate)
+- 저장은 `LocalDate` 고정
+- CSV에 시간이 있어도 최종 저장은 날짜만 사용한다.
+- 파싱 타임존은 기본 `Asia/Seoul`로 고정한다.
+- 실패한 날짜는 import에서 에러로 처리하거나, 해당 행은 `needsReview=true`로 격리한다(정책 선택)
+
+CSV 파일 기본 가정(MVP)
+- 인코딩: UTF-8 (BOM 허용)
+- 구분자: `,` (comma)
+- 헤더 1행을 기본으로 가정(헤더가 없으면 수동 매핑 모드로 처리)
+
+### 11.4 금액 파싱 규칙(KRW 정수)
+허용 입력(예)
+- `12500`, `12,500`, `12,500원`, `₩12,500`
+
+입출금 분리 컬럼(자주 나오는 케이스)
+- CSV가 `withdrawalAmount`/`depositAmount`처럼 "출금/입금" 컬럼을 따로 제공하면:
+  - 둘 중 값이 있는 쪽을 `amount`로 사용하고 `type`을 결정한다.
+  - 둘 다 값이 있거나 둘 다 비어 있으면 해당 행은 에러 처리한다.
+
+부호 처리(중요)
+- DB에는 `amount > 0`만 저장한다.
+- CSV 금액에 `-12500` 또는 `(12500)` 형태가 오면 절대값으로 파싱한다.
+- `type`이 없으면 부호로 타입을 추론한다.
+  - 음수 표기 -> `EXPENSE`
+  - 양수 표기 -> `INCOME`
+- `type`이 있는데 부호가 반대면:
+  - MVP 권장: 경고(warning)로 표시하고 `needsReview=true`로 저장(조용한 데이터 변형 방지)
+
+### 11.5 타입 결정 규칙
+- CSV에 `type` 컬럼이 있으면 그 값을 우선한다.
+- 없으면 금액 부호/컬럼 조합으로 추론한다.
+- `TRANSFER`는 반드시 from/to가 명확할 때만 생성한다.
+
+### 11.6 중복 판단 키 + 정책(MVP)
+중복은 "같은 CSV를 여러 번 import"할 때 반드시 발생한다.
+
+중복 판단 키(추천, 보수적)
+- `txDate + type + amount + accountKey + descriptionNormalized`
+- `accountKey`
+  - `INCOME/EXPENSE`: `accountId`
+  - `TRANSFER`: `(fromAccountId,toAccountId)`
+- `descriptionNormalized` 최소 규칙
+  - trim
+  - 연속 공백 1개로 축약
+  - 영문은 소문자화(한글은 그대로)
+
+중복 처리 정책(MVP 권장)
+- 기본: `skip` (이미 있으면 새 행은 건너뜀)
+- `merge`는 MVP에서 금지(조용히 데이터가 바뀌는 사고를 막기 위해)
+- 중복 판단은 기본적으로 `deletedAt IS NULL`(살아있는 거래) 기준으로만 수행한다.
+  - 이미 소프트삭제된 거래는 재-import로 다시 들어올 수 있다(사용자 복구 시나리오).
+
+### 11.7 import 후 상태/플래그 보정
+- `categoryId == null`이면 서버는 `needsReview=true`로 저장(요청값이 false여도 보정)
+- `excludeFromReports`는 `EXPENSE`에서만 의미 있음
+  - `type != EXPENSE`면 서버는 `excludeFromReports=false`로 저장(요청값 무시)
+
+### 11.8 Import 결과 요약(프론트 표시용)
+import 결과에는 아래를 포함한다.
+- createdCount
+- skippedCount(duplicates)
+- warningCount + 대표 warning 샘플
+- errorCount + 대표 error 샘플(있으면)
+
+---
+
+## 12. 태그 정책(MVP): 자유 텍스트 배열로 시작
+태그는 제품 핵심(흐름/리포트)보다 구현 복잡도가 커지기 쉬워서, MVP에서는 단순하게 고정한다.
+
+### 12.1 결론(MVP)
+- API는 `tagNames: string[]` (자유 텍스트 배열)로 고정한다.
+- DB 저장 모델(MVP 권장): `tag_names text[]`로 저장한다.
+  - 정규화(M:N tags 테이블)는 추후(자동완성/추천/집계가 필요해질 때)로 미룬다.
+
+### 12.2 입력/저장 규칙
+- UI에서 `#`는 입력 편의용일 뿐, 저장에는 포함하지 않는다.
+  - 예: `#데이트` 입력 -> `"데이트"` 저장
+- 저장 전 최소 정규화
+  - trim
+  - 빈 문자열 제거
+  - 중복 제거(대소문자 차이 포함)
+- 거래당 태그 개수 제한(예: 10개) 권장
+- 태그 길이 제한(예: 1~30자) 권장
+
+### 12.3 검색/필터에서의 위치(MVP)
+- 1순위는 계좌/기간/타입/카테고리/인박스(needsReview)
+- 태그는 보조 필터로 제공(없어도 MVP 성립)
+
+---
+
+## 13. 멀티유저/인증(계정) 설계: MVP에서 미리 고정할 것
+계정을 붙일 계획이면 "누구 데이터인가"가 스키마/API 전반에 퍼지므로, MVP 단계에서 최소한의 결정을 고정한다.
+
+### 13.1 결론(MVP 권장)
+- 데이터 소유 모델: `user_id` 기반 단일 사용자 영역(1 user = 1 데이터 영역)
+  - 모든 사용자 데이터 테이블은 `user_id`(FK)를 가진다.
+  - API는 요청에서 `userId`를 받지 않고, 인증된 사용자 컨텍스트로만 동작한다.
+- 인증 방식: 세션 쿠키 기반(auth + httpOnly cookie)
+  - 이유: 웹/PWA에서 구현/운영 단순, 토큰 저장/갱신 이슈 감소
+
+### 13.2 테이블/컬럼 원칙(MVP)
+필수로 `user_id`를 포함(권장)
+- `accounts.user_id` (NOT NULL)
+- `transactions.user_id` (NOT NULL)
+- `backups.user_id` 또는 export/import 시 사용자 컨텍스트로만 동작(유저별 백업)
+
+카테고리 소유 모델(권장)
+- 시스템 기본 카테고리(공용) + 사용자 커스텀 카테고리(개별)
+  - `categories.user_id`는 NULL 가능
+    - NULL: 시스템 기본 카테고리
+    - NOT NULL: 사용자 커스텀 카테고리
+  - 장점: 초기에 표준 카테고리를 제공하면서도 개인화 확장 가능
+
+### 13.3 사용자/인증 API 계약(MVP 최소)
+아래는 "있어야만" 계정 기반으로 개발이 진행된다.
+
+- `POST /api/v1/auth/signup` (201)
+- `POST /api/v1/auth/login` (200)
+- `POST /api/v1/auth/logout` (204)
+- `GET /api/v1/auth/me` (200)
+
+세션/쿠키 정책(권장)
+- 로그인 성공 시 서버가 세션을 생성하고 쿠키를 설정한다.
+- 쿠키는 `HttpOnly`로 설정한다(프론트 JS에서 토큰을 다루지 않도록).
+- 쿠키 권장 설정: `Secure`(HTTPS), `SameSite=Lax`(또는 Strict), `Path=/`
+- 로그아웃은 서버 세션을 무효화한다.
+
+CSRF/CORS(최소 고려)
+- 세션 쿠키 기반이면 CSRF 방어가 필요하다.
+  - MVP 권장: same-site(동일 도메인)로 먼저 운영 + `SameSite` 쿠키 + Spring Security 기본 CSRF 정책을 따른다.
+  - API만 분리 도메인으로 운영하면(CORS) CSRF/쿠키 정책을 더 엄격히 설계해야 한다.
+
+### 13.4 권한/스코프 규칙(반드시 고정)
+- 모든 조회/수정/삭제는 "내 user_id의 데이터만" 접근 가능
+- `GET /transactions?accountId=...`는 해당 account가 내 소유가 아니면 404 또는 403 (정책 선택)
+  - MVP 권장: 404 (리소스 존재 여부를 노출하지 않기 위함)
+- 리포트/백업도 user scope로만 계산/내보내기
+
+### 13.5 ADR(Architecture Decision Record) 템플릿
+아래 2개 ADR을 문서(또는 별도 파일)로 남긴다. 이유/대안/결정/영향만 짧게 적는다.
+
+ADR-001: Authentication
+- Context: 웹/PWA 기반, 계정 필요, MVP 빠른 구현
+- Decision: 세션 쿠키 기반 인증
+- Alternatives: JWT(access/refresh), OAuth-only
+- Consequences: CSRF 대응 필요(동일 출처 기준이면 단순), 서버 세션 저장 필요
+
+ADR-002: Data Ownership
+- Context: 사용자별 데이터 분리 필요
+- Decision: 주요 테이블에 `user_id` 필수 + categories는 (system + user custom) 혼합
+- Alternatives: 전 테이블 tenant_id 도입, categories 전부 user 소유
+- Consequences: 쿼리에 항상 user_id 필터, FK/인덱스에 user_id 포함 고려
+
+---
+
+## 14. 구현 방식: Vertical Slice(세로 기능 단위로 끝내기)
+레이어별(DB만/백만/프론트만)로 진행하지 말고, 사용자 기능 1개를 DB->API->UI->Tests까지 얇게 완결한다.
+
+### 14.1 왜 필요한가
+- 계약/API/도메인 규칙이 실제 UI에서 맞물리는지 빠르게 검증
+- 리포트/이체/soft delete 같은 규칙은 레이어를 가로지르므로, slice로 해야 되돌아가는 비용이 줄어듦
+
+### 14.2 Slice 템플릿(문서에 복붙해서 사용)
+```text
+Story:
+- As a user, I want ..., so that ...
+
+Scope:
+- In: ...
+- Out: ...
+
+Deliverables:
+- DB:
+- API:
+- UI:
+- Tests:
+
+Acceptance checks:
+- ...
+
+Edge case to cover:
+- ...
+```
+
+### 14.3 Definition of Done(DoD, 고정)
+- 로컬에서 end-to-end 동작(프론트->백->DB)
+- 도메인 규칙 준수(`INCOME/EXPENSE/TRANSFER`, soft delete, amount>0, type 상호배타)
+- 테스트 1개 이상(성공 1개 + 엣지 1개)
+- 커밋에 남은 "blocking TODO" 없음
+
+### 14.4 MVP 권장 Slice 순서(계정 포함)
+1) Auth 기본 + user scope 뼈대
+- DB: users, sessions(또는 spring session), user_id 컬럼 추가 방향 확정
+- API: signup/login/me/logout
+- UI: 로그인/로그아웃 + 보호된 페이지 가드
+- Tests: 로그인 성공 + 인증 없이 접근 실패
+
+2) Accounts CRUD (user scope)
+- 계좌 생성/목록/수정 + isActive 보관
+- Tests: 타 유저 계좌 접근 차단
+
+3) Transactions CRUD (INCOME/EXPENSE) + list 규칙
+- from/to 기간, 필터, 페이지, needsReview, excludeFromReports 규칙 적용
+- Tests: excludeFromReports가 총지출에서 제외되는지(리포트 전 단계로 단위 테스트 가능)
+
+4) TRANSFER 입력/조회 + 리포트에서 제외 확인
+- Tests: TRANSFER가 totalExpense에 영향 없고 transferVolume에만 반영
+
+5) Reports summary(정의서 기준) + transfers(계좌쌍별)
+
+6) CSV Import(1-shot 또는 preview/commit) + dedupe(skip) + needsReview 보정
+
+7) Backup export/import(v1, version/exportedAt 포함)
