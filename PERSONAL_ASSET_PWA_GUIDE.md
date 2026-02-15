@@ -243,3 +243,286 @@
 - 소프트 삭제 + 이체 처리
 
 이 6개가 완성되면 MVP 목표인 “정리, 검색, 분류, 리포트”를 충족할 수 있습니다.
+
+---
+
+## 8. MVP API 계약 (프론트-백 기준선)
+코드 작성 전에 "계약"을 먼저 고정해서 프론트/백이 어긋나지 않게 한다.
+
+### 8.1 Base 규칙
+- Base Path: `/api/v1`
+- Content-Type: 기본 `application/json`
+  - 단, 파일 업로드/다운로드 API는 예외(아래 Imports/Backups 참고)
+- Money: `amount`는 KRW 원 단위 정수(`long`), 항상 양수
+- Date: `txDate`는 `"YYYY-MM-DD"` 문자열(`LocalDate`)
+- Soft delete: `deletedAt != null`은 기본 조회/리포트에서 제외
+
+### 8.2 에러 규약(통일)
+- 422: Validation 실패(필수값 누락/형식 오류/상호배타 규칙 위반 포함)
+- 409: 도메인 충돌(예: `fromAccountId == toAccountId`)
+- 404: 없는 리소스
+
+에러 응답(JSON)
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "txDate is required",
+    "fieldErrors": [
+      { "field": "txDate", "reason": "required" }
+    ]
+  }
+}
+```
+
+### 8.3 목록 API 규칙(쿼리/응답)
+- 날짜 범위: `from <= txDate < to` (inclusive start + exclusive end)
+  - 예: 2026-02 전체: `from=2026-02-01`, `to=2026-03-01`
+- 공통 쿼리 파라미터(거래 목록 기준)
+  - 기간: `from`, `to`
+  - 필터: `accountId`, `type`, `categoryId`, `needsReview`
+    - `accountId` 의미(중요): "해당 계좌가 관여된 거래"
+      - `INCOME/EXPENSE`: `accountId == :accountId`
+      - `TRANSFER`: `fromAccountId == :accountId` 또는 `toAccountId == :accountId`
+  - 검색: `q` (description 단순 검색)
+  - 정렬: `sort=txDate,desc`
+  - 페이지: `page`, `size`
+
+예)
+```
+GET /api/v1/transactions?from=2026-02-01&to=2026-03-01&type=EXPENSE&needsReview=true&page=0&size=50&sort=txDate,desc&q=스타벅스
+```
+
+페이지 응답(JSON)
+```json
+{
+  "items": [],
+  "page": 0,
+  "size": 50,
+  "totalElements": 0
+}
+```
+
+### 8.4 Accounts
+- `GET /api/v1/accounts` (200)
+- `POST /api/v1/accounts` (201)
+- `PATCH /api/v1/accounts/{id}` (200)
+- `DELETE /api/v1/accounts/{id}` (204, 소프트삭제, 선택)
+
+계좌 삭제/보관 정책(MVP 권장)
+- 계좌는 "삭제"보다 `isActive=false`로 보관(archive)하는 방식을 우선한다.
+- `DELETE`를 구현한다면 권장 정책:
+  - 계좌에 연결된 거래가 1건 이상이면 `409`로 거부(데이터 정합성/리포트 일관성 보호)
+  - 거래가 0건인 계좌만 삭제 허용
+
+계좌 생성 요청(JSON)
+```json
+{
+  "name": "국민 주거래",
+  "type": "CHECKING",
+  "isActive": true,
+  "orderIndex": 10,
+  "openingBalance": 1000000
+}
+```
+
+계좌 응답(JSON, 예시)
+```json
+{
+  "id": 1,
+  "name": "국민 주거래",
+  "type": "CHECKING",
+  "isActive": true,
+  "orderIndex": 10,
+  "openingBalance": 1000000,
+  "currentBalance": 850000
+}
+```
+
+주의사항(MVP)
+- `currentBalance`는 파생값(계산 결과)이며, 요청 바디로 받지 않는다.
+- `currentBalance`를 응답에 포함할지 여부는 성능/캐싱 전략에 따라 조정 가능(미포함이어도 프론트는 동작해야 함).
+
+### 8.5 Transactions
+- `GET /api/v1/transactions` (200, 페이지 응답)
+- `GET /api/v1/transactions/{id}` (200)
+- `POST /api/v1/transactions` (201)
+- `PATCH /api/v1/transactions/{id}` (200)
+- `DELETE /api/v1/transactions/{id}` (204, 소프트삭제)
+
+PATCH 정책(MVP)
+- `type` 변경 불가(변경이 필요하면 삭제 후 재생성)
+  - 이유: 부분 수정에서 상호배타 필드(accountId vs from/to) 누락으로 정합성 오류가 자주 발생
+
+필수 제약(요약)
+- `amount > 0`
+- `type=TRANSFER`: `fromAccountId`/`toAccountId` 필수, `accountId`는 NULL
+- `type in (INCOME, EXPENSE)`: `accountId` 필수, `fromAccountId`/`toAccountId`는 NULL
+- `fromAccountId != toAccountId`
+- `needsReview`
+  - `categoryId == null`이면 서버는 `needsReview=true`로 저장(요청값이 false여도 보정)
+- `excludeFromReports`
+  - 의미 있는 타입: `EXPENSE`
+  - `type != EXPENSE`면 서버는 `excludeFromReports=false`로 저장(요청값 무시)
+
+거래 생성 요청(EXPENSE) 예시(JSON)
+```json
+{
+  "txDate": "2026-02-15",
+  "type": "EXPENSE",
+  "amount": 12500,
+  "accountId": 1,
+  "description": "스타벅스",
+  "categoryId": 10,
+  "tagNames": ["데이트"],
+  "needsReview": false,
+  "excludeFromReports": false
+}
+```
+
+거래 생성 요청(TRANSFER) 예시(JSON)
+```json
+{
+  "txDate": "2026-02-15",
+  "type": "TRANSFER",
+  "amount": 300000,
+  "fromAccountId": 1,
+  "toAccountId": 2,
+  "description": "주식계좌로 이동",
+  "categoryId": 30,
+  "tagNames": [],
+  "needsReview": false
+}
+```
+
+거래 응답 예시(JSON)
+```json
+{
+  "id": 101,
+  "txDate": "2026-02-15",
+  "type": "EXPENSE",
+  "amount": 12500,
+  "accountId": 1,
+  "fromAccountId": null,
+  "toAccountId": null,
+  "description": "스타벅스",
+  "categoryId": 10,
+  "tagNames": ["데이트"],
+  "needsReview": false,
+  "excludeFromReports": false,
+  "deletedAt": null
+}
+```
+
+거래 단건 조회 응답(JSON, 예시)
+```json
+{
+  "id": 102,
+  "txDate": "2026-02-15",
+  "type": "TRANSFER",
+  "amount": 300000,
+  "accountId": null,
+  "fromAccountId": 1,
+  "toAccountId": 2,
+  "description": "주식계좌로 이동",
+  "categoryId": 30,
+  "tagNames": [],
+  "needsReview": false,
+  "excludeFromReports": false,
+  "deletedAt": null
+}
+```
+
+### 8.6 Reports
+- `GET /api/v1/reports/summary?from=...&to=...` (200)
+  - 총수입: `INCOME` 합(소프트 삭제 제외)
+  - 총지출: `EXPENSE` 합(소프트 삭제 + `excludeFromReports=true` 제외)
+  - 순저축: `총수입-총지출` (`TRANSFER` 제외)
+- `GET /api/v1/reports/transfers?from=...&to=...` (200)
+  - `TRANSFER` 전용(현금흐름과 분리)
+
+리포트 주의사항
+- 대시보드/리포트의 "지출" 값은 `excludeFromReports=true`가 제외된 값이다. (Top N, 고정/변동비도 동일)
+  - 즉, 지출 관련 집계(예: totalExpense, category Top N, fixed/variable)에서 `excludeFromReports=true`는 항상 제외 규칙을 적용한다.
+
+요약 리포트 응답 예시(JSON)
+```json
+{
+  "from": "2026-02-01",
+  "to": "2026-03-01",
+  "totalIncome": 5000000,
+  "totalExpense": 2500000,
+  "netSaving": 2500000
+}
+```
+
+이체 리포트 응답 예시(계좌쌍별 집계, MVP 고정 추천)
+```json
+{
+  "from": "2026-02-01",
+  "to": "2026-03-01",
+  "items": [
+    { "fromAccountId": 1, "toAccountId": 2, "amount": 900000 }
+  ]
+}
+```
+
+### 8.7 Imports (CSV)
+- `POST /api/v1/imports/csv/preview` (200)
+  - Content-Type: `multipart/form-data` (`file=csv`)
+  - 목적: 파싱/샘플/컬럼 확인 + 매핑 설정을 위한 미리보기
+- `POST /api/v1/imports/csv/commit` (201)
+  - Content-Type: `application/json`
+  - 권장: preview가 발급한 `importSessionId`로 commit(재업로드/불일치 방지)
+
+MVP 복잡도 경고
+- `preview -> importSessionId -> commit` 흐름은 서버에 세션 저장/만료/재시도/중복 커밋 방지까지 필요해서 생각보다 손이 간다.
+- 더 단순한 대안(MVP용): `POST /api/v1/imports/csv` 1회 호출로 `multipart/form-data(file=csv + mapping=json)`을 받아 바로 반영하고 요약을 반환한다.
+
+preview 응답 예시(JSON)
+```json
+{
+  "importSessionId": "imp_abc123",
+  "detectedColumns": ["date", "amount", "description", "account"],
+  "sampleRows": [
+    { "date": "2026-02-01", "amount": "12,500", "description": "스타벅스", "account": "국민" }
+  ],
+  "warnings": []
+}
+```
+
+commit 요청 예시(JSON)
+```json
+{
+  "importSessionId": "imp_abc123",
+  "mapping": {
+    "txDate": "date",
+    "amount": "amount",
+    "description": "description",
+    "accountName": "account"
+  }
+}
+```
+
+### 8.8 Backups
+- `GET /api/v1/backups/export` (200)
+  - Content-Type: `application/json`
+  - (선택) 다운로드로 제공 시 `Content-Disposition: attachment`
+- `POST /api/v1/backups/import` (200 또는 201)
+  - Content-Type: `multipart/form-data` (`file=json`)
+
+### 8.9 Categories (MVP 최소)
+- `GET /api/v1/categories` (200)
+  - (선택) `type=EXPENSE|INCOME|TRANSFER`로 필터링 지원
+  - 목적: 거래 입력 UI에서 카테고리 선택을 안정적으로 제공
+
+카테고리 응답 예시(JSON)
+```json
+{
+  "items": [
+    { "id": 10, "type": "EXPENSE", "name": "식비", "parentId": null },
+    { "id": 11, "type": "EXPENSE", "name": "배달", "parentId": 10 },
+    { "id": 30, "type": "TRANSFER", "name": "투자이동", "parentId": null }
+  ]
+}
+```
