@@ -17,3 +17,7 @@ backend/target/
 
 # Local OpenCode state
 .opencode/
+
+# Local personal tooling config
+.codex/
+opencode.json
