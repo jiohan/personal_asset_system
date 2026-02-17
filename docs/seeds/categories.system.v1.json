@@ -1,0 +1,8 @@
+[
+  { "type": "INCOME", "name": "급여", "parentName": null },
+  { "type": "INCOME", "name": "기타수입", "parentName": null },
+  { "type": "EXPENSE", "name": "식비", "parentName": null },
+  { "type": "EXPENSE", "name": "카페/간식", "parentName": "식비" },
+  { "type": "EXPENSE", "name": "교통", "parentName": null },
+  { "type": "TRANSFER", "name": "투자이동", "parentName": null }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "txDate": "2026-02-10",
+    "type": "INCOME",
+    "amount": 3200000,
+    "accountName": "국민 주거래",
+    "description": "월급",
+    "excludeFromReports": false
+  },
+  {
+    "txDate": "2026-02-12",
+    "type": "EXPENSE",
+    "amount": 12500,
+    "accountName": "국민 주거래",
+    "description": "스타벅스",
+    "excludeFromReports": false
+  },
+  {
+    "txDate": "2026-02-15",
+    "type": "TRANSFER",
+    "amount": 300000,
+    "fromAccountName": "국민 주거래",
+    "toAccountName": "증권 계좌",
+    "description": "투자계좌로 이동"
+  },
+  {
+    "txDate": "2026-02-18",
+    "type": "EXPENSE",
+    "amount": 8900,
+    "accountName": "국민 주거래",
+    "description": "개인정산",
+    "excludeFromReports": true
+  }
+]

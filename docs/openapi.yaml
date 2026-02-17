@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: Personal Asset Management API
+  version: 0.1.0-mvp
+  description: >-
+    MVP API contract skeleton based on PERSONAL_ASSET_PWA_GUIDE.md.
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Auth
+  - name: Accounts
+  - name: Transactions
+  - name: Reports
+  - name: Imports
+  - name: Backups
+  - name: Categories
+
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Sign up
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        '204': { description: No Content }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Accounts]
+      summary: Create account
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /accounts/{id}:
+    patch:
+      tags: [Accounts]
+      summary: Update account
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: List transactions
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Transactions]
+      summary: Create transaction
+      responses:
+        '201': { description: Created }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /transactions/{id}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Transactions]
+      summary: Update transaction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Transactions]
+      summary: Soft-delete transaction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: No Content }
+
+  /reports/summary:
+    get:
+      tags: [Reports]
+      summary: Summary report
+      responses:
+        '200': { description: OK }
+
+  /reports/transfers:
+    get:
+      tags: [Reports]
+      summary: Transfer report by account pair
+      responses:
+        '200': { description: OK }
+
+  /imports/csv:
+    post:
+      tags: [Imports]
+      summary: CSV one-shot import
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, mapping]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                mapping:
+                  type: string
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /backups/export:
+    get:
+      tags: [Backups]
+      summary: Export backup v1
+      responses:
+        '200': { description: OK }
+
+  /backups/import:
+    post:
+      tags: [Backups]
+      summary: Import backup v1 (replace-all)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Categories]
+      summary: Create user category
+      responses:
+        '201': { description: Created }
+
+  /categories/{id}:
+    patch:
+      tags: [Categories]
+      summary: Update user category
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+components:
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Domain conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string

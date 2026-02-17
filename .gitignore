@@ -1,0 +1,19 @@
+# Local secrets
+.env
+.env.local
+.env.*.local
+.env.mcp
+
+# Dependencies / build
+frontend/node_modules/
+frontend/dist/
+backend/target/
+
+# IDE / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Local OpenCode state
+.opencode/
