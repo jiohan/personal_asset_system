@@ -32,11 +32,12 @@
 
 ### 1단계: 데이터 유입 경로 구축 (입력)
 - 모바일 빠른 수동 입력: 날짜/금액/수입·지출/카테고리/메모
-- CSV 업로드: 미리보기 -> 컬럼 매핑 -> 중복 제거 -> 가져오기
+- CSV 업로드(MVP 고정): 1-shot import(`POST /api/v1/imports/csv`)로 검증/중복처리/저장을 한 번에 수행
+  - UI는 업로드 전에 로컬 미리보기를 제공할 수 있다(서버 API 계약은 1-shot으로 단순화).
 - 날짜 파싱 규칙: CSV에 시간이 있어도 최종 저장은 `LocalDate`(date-only). 타임존 변환 드리프트 방지용 기본 타임존을 명시(예: Asia/Seoul).
 
 ### 2단계: 분류 시스템 구축 (정리)
-- 카테고리: 트리 구조(대/중/소) 또는 2단계
+- 카테고리(MVP 고정): 2단계(대/소)
 - 태그: 다중 태그 지원
 - 분류 규칙: 키워드/날짜/금액/가맹점 기반 자동 분류
 - 검토함(인박스): 자동 분류 불확실 항목 일괄 처리
@@ -165,9 +166,9 @@
 - 카테고리: `categoryId` (MVP에서는 NULL 허용, 미분류는 인박스로 보낸다)
 - 태그(MVP 권장): `tagNames: string[]` 형태의 "자유 텍스트 태그"를 허용한다.
   - 목적: 빠른 필터링/검색(예: `#데이트`, `#출장`)
-  - 저장 방식은 구현 시점에 결정(예: Postgres `text[]` 또는 별도 태그 테이블+매핑 테이블)
+  - 저장 방식(MVP 고정): `transaction_tags(transaction_id, tag_name)` 조인 테이블
   - 추후 확장: 태그 표준화/추천/자동 태깅이 필요해지면 정규화한다.
-- 원본(수동/CSV)
+- 원본: `source` (`MANUAL` | `CSV`, 서버가 설정)
 - 인박스 플래그: `needsReview` (기본값 false)
 - 통계 제외 플래그: `excludeFromReports` (기본값 false)
 - 삭제 여부(`deletedAt`)
@@ -176,12 +177,12 @@
   - 금액은 항상 양수: `amount > 0`
   - `TRANSFER`는 `fromAccountId`/`toAccountId`가 모두 있어야 한다.
   - `TRANSFER`는 `fromAccountId != toAccountId`
-  - `INCOME`/`EXPENSE`는 `accountId`가 있어야 하고, `toAccountId`는 없어야 한다.
+  - `INCOME`/`EXPENSE`는 `accountId`가 있어야 하고, `fromAccountId`/`toAccountId`는 없어야 한다.
   - `type`이 진실이다: `toAccountId` 존재 여부로 타입을 추론하지 않는다.
 
 3. 카테고리 구조
-- 2단계(대/소) 또는 3단계 중 하나 선택
-  - DB는 `parentId` 트리로 두고, MVP UI는 2단까지만 써도 된다.
+- MVP 고정: 2단계(대/소)
+  - DB는 `parentId` 트리 구조를 유지하되, MVP에서는 깊이 1(루트 + 자식)까지만 허용한다.
   - 카테고리는 `TRANSFER`에도 설정 가능하되, "현금흐름"이 아니라 "자금 이동" 분류 용도로만 쓴다.
 
   MVP 기본 카테고리(예시)
@@ -263,6 +264,7 @@
 - 422: Validation 실패(필수값 누락/형식 오류/상호배타 규칙 위반 포함)
 - 409: 도메인 충돌(예: `fromAccountId == toAccountId`)
 - 404: 없는 리소스
+- 401: 인증 필요/인증 실패(세션 없음, 세션 만료, 로그인 실패 등)
 
 에러 응답(JSON)
 ```json
@@ -309,11 +311,11 @@ GET /api/v1/transactions?from=2026-02-01&to=2026-03-01&type=EXPENSE&needsReview=
 - `GET /api/v1/accounts` (200)
 - `POST /api/v1/accounts` (201)
 - `PATCH /api/v1/accounts/{id}` (200)
-- `DELETE /api/v1/accounts/{id}` (204, 소프트삭제, 선택)
+- (MVP) 계좌 삭제 API는 두지 않는다. 계좌는 `isActive=false`로 보관(archive)한다.
 
 계좌 삭제/보관 정책(MVP 권장)
 - 계좌는 "삭제"보다 `isActive=false`로 보관(archive)하는 방식을 우선한다.
-- `DELETE`를 구현한다면 권장 정책:
+- 계좌 삭제가 필요해지면(Later):
   - 계좌에 연결된 거래가 1건 이상이면 `409`로 거부(데이터 정합성/리포트 일관성 보호)
   - 거래가 0건인 계좌만 삭제 허용
 
@@ -361,11 +363,17 @@ PATCH 정책(MVP)
 - `type=TRANSFER`: `fromAccountId`/`toAccountId` 필수, `accountId`는 NULL
 - `type in (INCOME, EXPENSE)`: `accountId` 필수, `fromAccountId`/`toAccountId`는 NULL
 - `fromAccountId != toAccountId`
+- user scope(필수)
+  - `accountId`/`fromAccountId`/`toAccountId`는 모두 "내 user_id 소유"여야 한다.
+  - 소유가 아니면 MVP 권장: `404` (리소스 존재 여부를 노출하지 않기 위함)
 - `needsReview`
   - `categoryId == null`이면 서버는 `needsReview=true`로 저장(요청값이 false여도 보정)
 - `excludeFromReports`
   - 의미 있는 타입: `EXPENSE`
   - `type != EXPENSE`면 서버는 `excludeFromReports=false`로 저장(요청값 무시)
+- `source`(서버 관리 필드)
+  - 수동 API 생성은 `MANUAL`로 저장
+  - CSV import 생성은 `CSV`로 저장
 
 거래 생성 요청(EXPENSE) 예시(JSON)
 ```json
@@ -411,6 +419,7 @@ PATCH 정책(MVP)
   "categoryId": 10,
   "tagNames": ["데이트"],
   "needsReview": false,
+  "source": "MANUAL",
   "excludeFromReports": false,
   "deletedAt": null
 }
@@ -430,6 +439,7 @@ PATCH 정책(MVP)
   "categoryId": 30,
   "tagNames": [],
   "needsReview": false,
+  "source": "MANUAL",
   "excludeFromReports": false,
   "deletedAt": null
 }
@@ -470,39 +480,41 @@ PATCH 정책(MVP)
 ```
 
 ### 8.7 Imports (CSV)
-- `POST /api/v1/imports/csv/preview` (200)
-  - Content-Type: `multipart/form-data` (`file=csv`)
-  - 목적: 파싱/샘플/컬럼 확인 + 매핑 설정을 위한 미리보기
-- `POST /api/v1/imports/csv/commit` (201)
-  - Content-Type: `application/json`
-  - 권장: preview가 발급한 `importSessionId`로 commit(재업로드/불일치 방지)
+- `POST /api/v1/imports/csv` (201)
+  - Content-Type: `multipart/form-data`
+  - form-data
+    - `file`: CSV 파일 (필수)
+    - `mapping`: JSON 문자열 (필수, 컬럼 매핑/고정값/계좌명 매핑 포함)
+  - 서버 동작(MVP 고정)
+    - 파싱 -> 검증 -> 중복 판단(skip) -> 저장을 한 트랜잭션으로 실행
+    - 에러 행이 1건이라도 있으면 422 + 전체 롤백(부분 성공 금지)
+    - warning 행은 저장 가능, 필요 시 `needsReview=true`로 보정
 
-MVP 복잡도 경고
-- `preview -> importSessionId -> commit` 흐름은 서버에 세션 저장/만료/재시도/중복 커밋 방지까지 필요해서 생각보다 손이 간다.
-- 더 단순한 대안(MVP용): `POST /api/v1/imports/csv` 1회 호출로 `multipart/form-data(file=csv + mapping=json)`을 받아 바로 반영하고 요약을 반환한다.
-
-preview 응답 예시(JSON)
+요청 예시(form-data의 `mapping` JSON)
 ```json
 {
-  "importSessionId": "imp_abc123",
-  "detectedColumns": ["date", "amount", "description", "account"],
-  "sampleRows": [
-    { "date": "2026-02-01", "amount": "12,500", "description": "스타벅스", "account": "국민" }
-  ],
-  "warnings": []
+  "txDate": "date",
+  "amount": "amount",
+  "description": "description",
+  "accountName": "account",
+  "type": "type",
+  "accountNameMap": {
+    "국민": 1,
+    "카카오": 2
+  }
 }
 ```
 
-commit 요청 예시(JSON)
+응답 예시(JSON)
 ```json
 {
-  "importSessionId": "imp_abc123",
-  "mapping": {
-    "txDate": "date",
-    "amount": "amount",
-    "description": "description",
-    "accountName": "account"
-  }
+  "createdCount": 120,
+  "skippedCount": 5,
+  "warningCount": 2,
+  "errorCount": 0,
+  "warnings": [
+    { "row": 31, "code": "SIGN_TYPE_MISMATCH", "message": "type과 부호가 달라 needsReview=true로 저장됨" }
+  ]
 }
 ```
 
@@ -512,11 +524,94 @@ commit 요청 예시(JSON)
   - (선택) 다운로드로 제공 시 `Content-Disposition: attachment`
 - `POST /api/v1/backups/import` (200 또는 201)
   - Content-Type: `multipart/form-data` (`file=json`)
+  - 동작 모드(MVP 고정): 현재 로그인 사용자 데이터 `replace-all` 복원(원자적 처리)
+    - 검증 실패 시 전체 롤백
+    - import는 파일 내 `userId`를 신뢰하지 않고 현재 로그인 사용자 컨텍스트를 사용
+
+Backup v1 JSON 포맷(고정)
+```json
+{
+  "version": "backup.v1",
+  "exportedAt": "2026-02-16T09:30:00Z",
+  "currency": "KRW",
+  "data": {
+    "accounts": [
+      { "id": 1, "name": "국민 주거래", "type": "CHECKING", "isActive": true, "orderIndex": 10, "openingBalance": 1000000 }
+    ],
+    "categories": [
+      { "id": 1001, "type": "EXPENSE", "name": "반려동물", "parentId": null, "isActive": true, "orderIndex": 50 }
+    ],
+    "transactions": [
+      { "id": 101, "txDate": "2026-02-15", "type": "EXPENSE", "amount": 12500, "accountId": 1, "fromAccountId": null, "toAccountId": null, "description": "스타벅스", "categoryId": null, "needsReview": true, "excludeFromReports": false, "source": "CSV", "deletedAt": null }
+    ],
+    "transactionTags": [
+      { "transactionId": 101, "tagName": "데이트" }
+    ]
+  }
+}
+```
+
+Backup v1 import 검증(고정)
+- `version != "backup.v1"`면 422
+- `currency != "KRW"`면 422
+- 참조 무결성(accounts/categories/transactions/tags) 불일치면 422
+- 복원 성공 시 현재 사용자의 기존 데이터는 교체되고, 이후 새 데이터로 일관된 상태를 보장한다.
+- MVP 호환 범위: 동일 앱 메이저 버전 + 동일 seed 정책을 기준으로 복원한다.
+- ID 처리 정책(MVP 고정)
+  - 파일의 `id`는 백업 파일 내부 참조용 키로만 사용한다.
+  - import 시 DB PK는 새로 발급하고, 계좌/카테고리/거래/태그 참조는 서버가 내부 매핑으로 재연결한다.
 
 ### 8.9 Categories (MVP 최소)
 - `GET /api/v1/categories` (200)
   - (선택) `type=EXPENSE|INCOME|TRANSFER`로 필터링 지원
   - 목적: 거래 입력 UI에서 카테고리 선택을 안정적으로 제공
+- `POST /api/v1/categories` (201, 사용자 커스텀)
+- `PATCH /api/v1/categories/{id}` (200, 사용자 커스텀)
+
+카테고리 소유/권한(MVP)
+- 시스템 기본 카테고리: `userId == null` (read-only)
+- 사용자 커스텀 카테고리: `userId == me` (생성/수정 가능)
+
+Create/Patch 계약(MVP)
+- 필드
+  - `type`: `INCOME|EXPENSE|TRANSFER` (필수)
+  - `name`: string (필수)
+  - `parentId`: number|null (선택)
+  - `isActive`: boolean (선택, 기본 true)
+  - `orderIndex`: number (선택)
+- 제약
+  - 시스템 기본 카테고리(`userId=null`)는 수정 불가(요청 시 404 또는 409, MVP 권장: 404)
+  - `parentId`를 지정하면, parent는 (시스템 카테고리 또는 내 카테고리)만 허용
+  - parent와 자식의 `type`은 동일해야 한다.
+  - MVP 깊이 제한: 루트(`parentId=null`) 또는 1단 자식만 허용(손자 depth 금지)
+  - 삭제 대신 `isActive=false`로 비활성화(MVP)
+  - 이름 유니크(권장)
+    - system 카테고리(`userId=null`): `(type, parentId, nameNormalized)` 기준 중복이면 409
+    - user 카테고리(`userId=me`): `(userId, type, parentId, nameNormalized)` 기준 중복이면 409
+
+POST 요청 예시(JSON)
+```json
+{
+  "type": "EXPENSE",
+  "name": "반려동물",
+  "parentId": null,
+  "isActive": true,
+  "orderIndex": 50
+}
+```
+
+PATCH 요청 예시(JSON)
+```json
+{
+  "name": "반려동물(병원)",
+  "isActive": true
+}
+```
+
+에러 규칙(MVP)
+- 422: 필수값/형식 오류
+- 404: 권한 없음(타 유저/시스템 카테고리) 또는 리소스 없음
+- 409: 유니크 충돌(동일 parent 아래 name 중복 등)
 
 카테고리 응답 예시(JSON)
 ```json
@@ -625,12 +720,38 @@ MVP에서도 FK/기본값을 최소로 잡아두면 데이터가 더 안정적�
 기본값(권장)
 - `needs_review` NOT NULL DEFAULT false
 - `exclude_from_reports` NOT NULL DEFAULT false
+- `source` NOT NULL DEFAULT 'MANUAL' (`MANUAL` | `CSV`)
 - `deleted_at` DEFAULT NULL
 
 추가 CHECK(선택, 안전장치)
 - `category_id IS NULL`이면 `needs_review=true`만 허용
   - 장점: CSV/배치가 category를 비워도 인박스로 자동 유도
   - 단점: "미분류지만 검토 안 함" 같은 상태는 불가(대부분 필요 없음)
+
+### 9.5 (권장) users/sessions/categories/tags: 최소 제약
+계정 기반 MVP에서 테이블이 추가되면, 최소 제약을 같이 고정한다.
+
+users(권장 최소)
+- `email_normalized` UNIQUE (case-insensitive unique)
+- `password_hash` NOT NULL
+- `created_at` NOT NULL
+
+sessions(선택: Spring Session JDBC 사용 시)
+- Spring Session 테이블(`spring_session`, `spring_session_attributes`)을 사용한다.
+- 세션 TTL을 설정한다(예: 14일).
+
+categories(권장)
+- `categories.user_id`는 NULL 가능(system) / NOT NULL(user custom)
+- 유니크 인덱스 권장(Postgres, NULL 안전)
+  - user 카테고리: `(user_id, type, COALESCE(parent_id, 0), name_normalized)` UNIQUE WHERE `user_id IS NOT NULL`
+  - system 카테고리: `(type, COALESCE(parent_id, 0), name_normalized)` UNIQUE WHERE `user_id IS NULL`
+  - 참고: Postgres UNIQUE는 NULL을 서로 다른 값으로 보므로, 단일 복합 UNIQUE만으로는 system 중복을 완전히 막기 어렵다.
+- MVP 깊이 제한(루트/1단 자식)은 앱 레벨 검증으로 강제한다.
+  - 재귀 CHECK는 DB에서 직접 강제하기 어렵기 때문에, Create/Patch 시 parent의 parent가 있으면 422로 거부한다.
+
+transaction_tags(MVP 권장)
+- `transaction_tags(transaction_id, tag_name)`
+- UNIQUE 권장: `(transaction_id, tag_name)` (중복 태그 방지)
 
 ---
 
@@ -661,7 +782,7 @@ MVP에서도 FK/기본값을 최소로 잡아두면 데이터가 더 안정적�
 ### 10.3 카테고리 리포트(지출 Top N) 정의
 카테고리별 지출은 "분류가 끝난 지출"만 집계한다.
 
-- 집계 대상: `type=EXPENSE` AND `excludeFromReports=false` AND `categoryId IS NOT NULL` AND `deletedAt IS NULL`
+- 집계 대상: `type=EXPENSE` AND `excludeFromReports=false` AND `categoryId IS NOT NULL` AND `needsReview=false` AND `deletedAt IS NULL`
 - 정렬: `sum(amount)` 내림차순
 - 미분류 지출: `categoryId IS NULL` 또는 `needsReview=true`는 별도 카드/배지로만 표시(Top N에는 포함하지 않음)
 
@@ -702,6 +823,10 @@ API 응답 형태(권장)
 ## 11. CSV Import 규칙(MVP): 파싱/매핑/중복/상태
 CSV는 포맷이 제각각이라 초기에 가장 자주 터진다. MVP에서도 아래 규칙은 문서로 고정한다.
 
+실행 모델(MVP 고정)
+- API는 `POST /api/v1/imports/csv` 1-shot 방식으로만 제공한다.
+- 요청 한 번에서 파싱/검증/중복처리/저장을 끝내며, 에러가 있으면 전체 롤백한다(원자적 import).
+
 ### 11.1 지원 범위(MVP)
 - 기본 지원: `INCOME`/`EXPENSE` 가져오기
 - `TRANSFER` 가져오기(선택): from/to 계좌를 확실히 매핑할 수 있을 때만 지원
@@ -719,9 +844,10 @@ CSV 한 행을 Transaction으로 만들기 위한 최소 요건을 고정한다.
   - `TRANSFER`(지원 시): `fromAccountId`/`toAccountId`를 결정할 수 있어야 한다.
 
 계좌 매핑 정책(MVP 권장)
-- CSV에 계좌명이 포함된 경우, preview 단계에서 "계좌명 -> accountId" 매핑을 사용자에게 요구한다.
-- 매핑되지 않은 계좌명이 남아 있으면 commit을 막는다(422) 또는 해당 행을 에러로 분리한다(정책 선택).
+- CSV에 계좌명이 포함된 경우, 요청의 `mapping`에서 "계좌명 -> accountId" 매핑을 전달해야 한다.
+- 매핑되지 않은 계좌명이 남아 있으면 import를 422로 거부한다(원자적 import).
 - 자동으로 계좌를 생성하는 기능은 MVP에서 보류(의도치 않은 계좌 난립 방지).
+- 권장 필드명: `mapping.accountNameMap` (예: `{ "국민": 1 }`)
 
 옵션
 - `type` (없으면 금액 부호 등으로 추론)
@@ -733,7 +859,7 @@ CSV 한 행을 Transaction으로 만들기 위한 최소 요건을 고정한다.
 - 저장은 `LocalDate` 고정
 - CSV에 시간이 있어도 최종 저장은 날짜만 사용한다.
 - 파싱 타임존은 기본 `Asia/Seoul`로 고정한다.
-- 실패한 날짜는 import에서 에러로 처리하거나, 해당 행은 `needsReview=true`로 격리한다(정책 선택)
+- 실패한 날짜는 import에서 에러로 처리한다. (MVP: 전체 import 거부, 부분 성공 금지)
 
 CSV 파일 기본 가정(MVP)
 - 인코딩: UTF-8 (BOM 허용)
@@ -794,6 +920,10 @@ import 결과에는 아래를 포함한다.
 - warningCount + 대표 warning 샘플
 - errorCount + 대표 error 샘플(있으면)
 
+MVP 실행 규칙(고정)
+- `errorCount > 0`이면 import는 422로 거부되고 아무것도 저장하지 않는다.
+- warning은 저장을 막지 않지만, 해당 행은 `needsReview=true`로 저장될 수 있다.
+
 ---
 
 ## 12. 태그 정책(MVP): 자유 텍스트 배열로 시작
@@ -801,8 +931,11 @@ import 결과에는 아래를 포함한다.
 
 ### 12.1 결론(MVP)
 - API는 `tagNames: string[]` (자유 텍스트 배열)로 고정한다.
-- DB 저장 모델(MVP 권장): `tag_names text[]`로 저장한다.
-  - 정규화(M:N tags 테이블)는 추후(자동완성/추천/집계가 필요해질 때)로 미룬다.
+- DB 저장 모델(MVP 권장): `transaction_tags` 조인 테이블로 저장한다.
+  - 예: `transaction_tags(transaction_id, tag_name)`
+  - 유니크 권장: `(transaction_id, tag_name)`
+  - 이유: Spring/JPA에서 배열 타입(`text[]`) 매핑이 까다로울 수 있어, MVP 구현 난이도를 낮춘다.
+  - 태그 표준화/자동완성/추천이 필요해지면 `tags` 테이블로 정규화한다(Later).
 
 ### 12.2 입력/저장 규칙
 - UI에서 `#`는 입력 편의용일 뿐, 저장에는 포함하지 않는다.
@@ -851,6 +984,27 @@ import 결과에는 아래를 포함한다.
 - `POST /api/v1/auth/logout` (204)
 - `GET /api/v1/auth/me` (200)
 
+Request/Response 예시(MVP)
+
+signup 요청(JSON)
+```json
+{ "email": "me@example.com", "password": "********" }
+```
+
+login 요청(JSON)
+```json
+{ "email": "me@example.com", "password": "********" }
+```
+
+me 응답(JSON)
+```json
+{ "id": 1, "email": "me@example.com" }
+```
+
+인증 실패
+- `POST /api/v1/auth/login`: 401
+- 보호된 API 호출: 401
+
 세션/쿠키 정책(권장)
 - 로그인 성공 시 서버가 세션을 생성하고 쿠키를 설정한다.
 - 쿠키는 `HttpOnly`로 설정한다(프론트 JS에서 토큰을 다루지 않도록).
@@ -864,8 +1018,7 @@ CSRF/CORS(최소 고려)
 
 ### 13.4 권한/스코프 규칙(반드시 고정)
 - 모든 조회/수정/삭제는 "내 user_id의 데이터만" 접근 가능
-- `GET /transactions?accountId=...`는 해당 account가 내 소유가 아니면 404 또는 403 (정책 선택)
-  - MVP 권장: 404 (리소스 존재 여부를 노출하지 않기 위함)
+- `GET /transactions?accountId=...`는 해당 account가 내 소유가 아니면 404 (리소스 존재 여부를 노출하지 않기 위함)
 - 리포트/백업도 user scope로만 계산/내보내기
 
 ### 13.5 ADR(Architecture Decision Record) 템플릿
@@ -882,6 +1035,51 @@ ADR-002: Data Ownership
 - Decision: 주요 테이블에 `user_id` 필수 + categories는 (system + user custom) 혼합
 - Alternatives: 전 테이블 tenant_id 도입, categories 전부 user 소유
 - Consequences: 쿼리에 항상 user_id 필터, FK/인덱스에 user_id 포함 고려
+
+### 13.6 users 스키마/해시 정책(MVP)
+users 테이블은 아래 최소 스펙을 고정한다.
+
+필수 컬럼(최소)
+- `id` (PK)
+- `email` (원문)
+- `email_normalized` (lower-case, UNIQUE)
+- `password_hash` (평문 저장 금지)
+- `created_at`
+
+비밀번호 해시
+- Spring `DelegatingPasswordEncoder` 사용(예: bcrypt)
+- 저장 형식: `{bcrypt}...` 같은 prefix 포함 형태 권장(알고리즘 마이그레이션 용이)
+
+로그인 실패 규칙
+- 자격증명 불일치(이메일/비밀번호 틀림): 401
+- 형식 오류/필수값 누락: 422
+
+### 13.7 세션 저장소(MVP)
+세션 쿠키 기반이므로 서버가 세션 상태를 저장한다.
+
+MVP 권장
+- Spring Session JDBC + Postgres
+- 세션 TTL 예: 14일
+- 로그아웃: 세션 무효화
+
+개발/로컬만 단순화(선택)
+- 메모리 세션도 가능하지만, 서버 재시작 시 로그인 유지가 안 된다.
+
+### 13.8 배포 모델 + CSRF/CORS(MVP 고정)
+MVP는 same-origin을 기준으로 한다.
+
+same-origin 원칙
+- Dev: 프론트 dev-server가 `/api`를 백엔드로 proxy 해서 브라우저 관점 same-origin 유지
+- Prod: 백엔드가 프론트 정적 빌드를 서빙하거나(reverse proxy 포함), 동일 origin으로 운영
+
+CSRF(세션 쿠키 기반)
+- CSRF 토큰을 쿠키로 내려주고, 프론트는 헤더로 다시 보낸다.
+  - 쿠키: `XSRF-TOKEN` (JS에서 읽을 수 있어야 하므로 HttpOnly 아님)
+  - 헤더: `X-XSRF-TOKEN`
+
+CORS
+- MVP에서는 분리 도메인(CORS+credentials) 운영을 보류한다.
+  - 분리 도메인으로 가면 쿠키/CSRF/CORS 설정이 크게 복잡해진다.
 
 ---
 
@@ -917,6 +1115,7 @@ Edge case to cover:
 ### 14.3 Definition of Done(DoD, 고정)
 - 로컬에서 end-to-end 동작(프론트->백->DB)
 - 도메인 규칙 준수(`INCOME/EXPENSE/TRANSFER`, soft delete, amount>0, type 상호배타)
+- user scope 준수(다른 user 데이터 접근 불가)
 - 테스트 1개 이상(성공 1개 + 엣지 1개)
 - 커밋에 남은 "blocking TODO" 없음
 
@@ -940,6 +1139,6 @@ Edge case to cover:
 
 5) Reports summary(정의서 기준) + transfers(계좌쌍별)
 
-6) CSV Import(1-shot 또는 preview/commit) + dedupe(skip) + needsReview 보정
+6) CSV Import(1-shot 고정) + dedupe(skip) + needsReview 보정
 
-7) Backup export/import(v1, version/exportedAt 포함)
+7) Backup export/import(v1 스키마 고정: version/exportedAt/currency/data)
