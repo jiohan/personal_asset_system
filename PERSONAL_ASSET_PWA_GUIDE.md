@@ -103,6 +103,17 @@
 /README.md  # 개발 규칙
 ```
 
+### P0 운영 고정(환경변수/브랜치)
+환경변수 로딩(백엔드)
+- `backend/.env.local`은 "참고 파일"이며, Spring Boot가 자동으로 읽지 않는다.
+- 실행 전에 shell export(또는 IDE Run Configuration 환경변수)로 주입한다.
+- 팀/CI/로컬 공통 규칙: `application*.yml + shell env`만 신뢰한다.
+
+브랜치/PR 운영
+- `main` 직접 개발 금지, 기능 단위 브랜치에서만 작업
+- PR은 "기능 1개 = PR 1개" 원칙
+- PR 머지 후 브랜치는 빠르게 정리(오래된 Open PR 방치 금지)
+
 ---
 
 ## 5. 개발 시작 전 최소 설계 고정
@@ -728,7 +739,7 @@ MVP에서도 FK/기본값을 최소로 잡아두면 데이터가 더 안정적�
   - 장점: CSV/배치가 category를 비워도 인박스로 자동 유도
   - 단점: "미분류지만 검토 안 함" 같은 상태는 불가(대부분 필요 없음)
 
-### 9.5 (권장) users/sessions/categories/tags: 최소 제약
+### 9.5 (고정) users/sessions/categories/tags: 최소 제약
 계정 기반 MVP에서 테이블이 추가되면, 최소 제약을 같이 고정한다.
 
 users(권장 최소)
@@ -736,8 +747,10 @@ users(권장 최소)
 - `password_hash` NOT NULL
 - `created_at` NOT NULL
 
-sessions(선택: Spring Session JDBC 사용 시)
-- Spring Session 테이블(`spring_session`, `spring_session_attributes`)을 사용한다.
+sessions(고정)
+- Spring Session JDBC 테이블(`spring_session`, `spring_session_attributes`)을 사용한다.
+- 세션 테이블은 Flyway 마이그레이션으로 생성/관리한다. (예: `V2__spring_session_jdbc.sql`)
+- 모든 프로필에서 `spring.session.jdbc.initialize-schema=never`로 고정한다.
 - 세션 TTL을 설정한다(예: 14일).
 
 categories(권장)
@@ -1057,13 +1070,12 @@ users 테이블은 아래 최소 스펙을 고정한다.
 ### 13.7 세션 저장소(MVP)
 세션 쿠키 기반이므로 서버가 세션 상태를 저장한다.
 
-MVP 권장
+MVP 고정
 - Spring Session JDBC + Postgres
 - 세션 TTL 예: 14일
 - 로그아웃: 세션 무효화
-
-개발/로컬만 단순화(선택)
-- 메모리 세션도 가능하지만, 서버 재시작 시 로그인 유지가 안 된다.
+- 세션 스키마 생성 방식: Flyway 마이그레이션으로만 관리
+  - `spring.session.jdbc.initialize-schema=never` (로컬/운영 공통)
 
 ### 13.8 배포 모델 + CSRF/CORS(MVP 고정)
 MVP는 same-origin을 기준으로 한다.

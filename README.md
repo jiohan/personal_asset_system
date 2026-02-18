@@ -27,9 +27,13 @@ docs/       OpenAPI, seed strategy, fixtures
 ## Environment Files
 복사해서 로컬 파일을 만든 뒤 값 입력:
 - `.env.example` -> `.env`
-- `.env.backend.example` -> `backend/.env.local` (또는 쉘 env)
+- `.env.backend.example` -> `backend/.env.local` (실행 전에 쉘 env로 export)
 - `.env.frontend.example` -> `frontend/.env.local`
 - `.env.mcp.example` -> `.env.mcp` (MCP 도구용)
+
+참고:
+- Spring Boot는 `backend/.env.local`을 자동 로드하지 않는다.
+- 백엔드 실행 전 `.env.local`을 shell 환경변수로 주입하거나 IDE Run Configuration 환경변수로 설정한다.
 
 ## Local Run
 
@@ -42,6 +46,9 @@ docker compose --env-file .env.example up -d
 ### 2) Backend
 ```bash
 cd backend
+set -a
+source .env.local
+set +a
 ./mvnw spring-boot:run
 ```
 

@@ -5,4 +5,4 @@ spring:
     password: ${DB_PASSWORD:asset}
   session:
     jdbc:
-      initialize-schema: always
+      initialize-schema: never
