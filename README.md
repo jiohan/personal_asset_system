@@ -42,7 +42,7 @@ docker compose --env-file .env.example up -d
 ### 2) Backend
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 ### 3) Frontend
@@ -54,7 +54,7 @@ npm run dev
 
 ## Test
 ```bash
-cd backend && mvn test
+cd backend && ./mvnw test
 cd frontend && npm run test -- --run
 ```
 

@@ -1,11 +1,14 @@
 openapi: 3.0.3
 info:
   title: Personal Asset Management API
-  version: 0.1.0-mvp
-  description: >-
-    MVP API contract skeleton based on PERSONAL_ASSET_PWA_GUIDE.md.
+  version: 0.2.0-mvp
+  description: |
+    MVP API contract aligned with PERSONAL_ASSET_PWA_GUIDE.md sections 8~14.
 servers:
   - url: /api/v1
+
+security:
+  - sessionCookie: []
 
 tags:
   - name: Auth
@@ -21,124 +24,276 @@ paths:
     post:
       tags: [Auth]
       summary: Sign up
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthSignupRequest'
       responses:
-        '201': { description: Created }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMeResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /auth/login:
     post:
       tags: [Auth]
       summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
       responses:
-        '200': { description: OK }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /auth/logout:
     post:
       tags: [Auth]
       summary: Logout
       responses:
-        '204': { description: No Content }
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /auth/me:
     get:
       tags: [Auth]
       summary: Current user
       responses:
-        '200': { description: OK }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /accounts:
     get:
       tags: [Accounts]
       summary: List accounts
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [Accounts]
       summary: Create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreateRequest'
       responses:
-        '201': { description: Created }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /accounts/{id}:
     patch:
       tags: [Accounts]
       summary: Update account
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPatchRequest'
       responses:
-        '200': { description: OK }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /transactions:
     get:
       tags: [Transactions]
       summary: List transactions
       parameters:
-        - in: query
-          name: from
-          schema: { type: string, format: date }
-        - in: query
-          name: to
-          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/Type'
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/NeedsReview'
+        - $ref: '#/components/parameters/SearchQ'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
     post:
       tags: [Transactions]
       summary: Create transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCreateRequest'
       responses:
-        '201': { description: Created }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /transactions/{id}:
     get:
       tags: [Transactions]
       summary: Get transaction
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PathId'
       responses:
-        '200': { description: OK }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
     patch:
       tags: [Transactions]
       summary: Update transaction
+      description: |
+        MVP rule: `type` update is not allowed. To change type, delete and recreate.
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionPatchRequest'
       responses:
-        '200': { description: OK }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
     delete:
       tags: [Transactions]
       summary: Soft-delete transaction
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PathId'
       responses:
-        '204': { description: No Content }
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /reports/summary:
     get:
       tags: [Reports]
       summary: Summary report
+      parameters:
+        - $ref: '#/components/parameters/FromDateRequired'
+        - $ref: '#/components/parameters/ToDateRequired'
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /reports/transfers:
     get:
       tags: [Reports]
-      summary: Transfer report by account pair
+      summary: Transfer report grouped by account pair
+      parameters:
+        - $ref: '#/components/parameters/FromDateRequired'
+        - $ref: '#/components/parameters/ToDateRequired'
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /imports/csv:
     post:
@@ -157,16 +312,32 @@ paths:
                   format: binary
                 mapping:
                   type: string
+                  description: JSON string for column/account mapping.
       responses:
-        '201': { description: Created }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsvImportResultResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /backups/export:
     get:
       tags: [Backups]
       summary: Export backup v1
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupV1Document'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /backups/import:
     post:
@@ -184,70 +355,691 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200': { description: OK }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupImportResultResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /categories:
     get:
       tags: [Categories]
       summary: List categories
+      parameters:
+        - in: query
+          name: type
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransactionType'
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [Categories]
       summary: Create user category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
       responses:
-        '201': { description: Created }
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /categories/{id}:
     patch:
       tags: [Categories]
       summary: Update user category
       parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryPatchRequest'
       responses:
-        '200': { description: OK }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+
+  parameters:
+    PathId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+    FromDate:
+      in: query
+      name: from
+      required: false
+      schema:
+        type: string
+        format: date
+    ToDate:
+      in: query
+      name: to
+      required: false
+      schema:
+        type: string
+        format: date
+    FromDateRequired:
+      in: query
+      name: from
+      required: true
+      schema:
+        type: string
+        format: date
+    ToDateRequired:
+      in: query
+      name: to
+      required: true
+      schema:
+        type: string
+        format: date
+    AccountId:
+      in: query
+      name: accountId
+      required: false
+      schema:
+        type: integer
+        format: int64
+    Type:
+      in: query
+      name: type
+      required: false
+      schema:
+        $ref: '#/components/schemas/TransactionType'
+    CategoryId:
+      in: query
+      name: categoryId
+      required: false
+      schema:
+        type: integer
+        format: int64
+    NeedsReview:
+      in: query
+      name: needsReview
+      required: false
+      schema:
+        type: boolean
+    SearchQ:
+      in: query
+      name: q
+      required: false
+      schema:
+        type: string
+    Page:
+      in: query
+      name: page
+      required: false
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    Size:
+      in: query
+      name: size
+      required: false
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 200
+    Sort:
+      in: query
+      name: sort
+      required: false
+      schema:
+        type: string
+        default: txDate,desc
+
   responses:
     ValidationError:
       description: Validation error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ApiErrorResponse'
     Unauthorized:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ApiErrorResponse'
     NotFound:
       description: Not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ApiErrorResponse'
     Conflict:
       description: Domain conflict
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ApiErrorResponse'
 
   schemas:
-    ApiError:
+    ApiErrorResponse:
       type: object
+      required: [error]
       properties:
         error:
           type: object
+          required: [code, message]
           properties:
             code:
               type: string
             message:
               type: string
+            fieldErrors:
+              type: array
+              items:
+                $ref: '#/components/schemas/FieldError'
+    FieldError:
+      type: object
+      required: [field, reason]
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+
+    TransactionType:
+      type: string
+      enum: [INCOME, EXPENSE, TRANSFER]
+
+    AccountType:
+      type: string
+      enum: [CHECKING, SAVINGS, CASH, INVESTMENT]
+
+    SourceType:
+      type: string
+      enum: [MANUAL, CSV]
+
+    AuthSignupRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    AuthMeResponse:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+
+    AccountCreateRequest:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        type:
+          $ref: '#/components/schemas/AccountType'
+        isActive:
+          type: boolean
+          default: true
+        orderIndex:
+          type: integer
+        openingBalance:
+          type: integer
+          format: int64
+          minimum: 0
+    AccountPatchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+    AccountResponse:
+      type: object
+      required: [id, name, type, isActive, openingBalance]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/AccountType'
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+          nullable: true
+        openingBalance:
+          type: integer
+          format: int64
+        currentBalance:
+          type: integer
+          format: int64
+          nullable: true
+    AccountListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+
+    TransactionCreateRequest:
+      type: object
+      required: [txDate, type, amount]
+      properties:
+        txDate:
+          type: string
+          format: date
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        accountId:
+          type: integer
+          format: int64
+          nullable: true
+        fromAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        toAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        description:
+          type: string
+          default: ''
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        tagNames:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+        needsReview:
+          type: boolean
+          default: false
+        excludeFromReports:
+          type: boolean
+          default: false
+      description: |
+        Rules:
+        - amount is always positive KRW integer.
+        - TRANSFER uses fromAccountId/toAccountId and accountId must be null.
+        - INCOME/EXPENSE uses accountId and from/to must be null.
+        - categoryId null => server stores needsReview=true.
+        - type != EXPENSE => server stores excludeFromReports=false.
+    TransactionPatchRequest:
+      type: object
+      description: |
+        Partial update for non-type fields.
+        MVP: type update is disallowed.
+      properties:
+        txDate:
+          type: string
+          format: date
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        accountId:
+          type: integer
+          format: int64
+          nullable: true
+        fromAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        toAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        description:
+          type: string
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        tagNames:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+        needsReview:
+          type: boolean
+        excludeFromReports:
+          type: boolean
+    TransactionResponse:
+      type: object
+      required:
+        - id
+        - txDate
+        - type
+        - amount
+        - description
+        - needsReview
+        - excludeFromReports
+        - source
+      properties:
+        id:
+          type: integer
+          format: int64
+        txDate:
+          type: string
+          format: date
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          type: integer
+          format: int64
+        accountId:
+          type: integer
+          format: int64
+          nullable: true
+        fromAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        toAccountId:
+          type: integer
+          format: int64
+          nullable: true
+        description:
+          type: string
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        tagNames:
+          type: array
+          items:
+            type: string
+        needsReview:
+          type: boolean
+        excludeFromReports:
+          type: boolean
+        source:
+          $ref: '#/components/schemas/SourceType'
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+    PagedTransactionResponse:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    ReportSummaryResponse:
+      type: object
+      required: [from, to, totalIncome, totalExpense, netSaving]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        totalIncome:
+          type: integer
+          format: int64
+        totalExpense:
+          type: integer
+          format: int64
+        netSaving:
+          type: integer
+          format: int64
+    TransferReportItem:
+      type: object
+      required: [fromAccountId, toAccountId, amount]
+      properties:
+        fromAccountId:
+          type: integer
+          format: int64
+        toAccountId:
+          type: integer
+          format: int64
+        amount:
+          type: integer
+          format: int64
+    TransferReportResponse:
+      type: object
+      required: [from, to, items]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferReportItem'
+
+    CsvImportWarning:
+      type: object
+      required: [row, code, message]
+      properties:
+        row:
+          type: integer
+        code:
+          type: string
+        message:
+          type: string
+    CsvImportResultResponse:
+      type: object
+      required: [createdCount, skippedCount, warningCount, errorCount]
+      properties:
+        createdCount:
+          type: integer
+        skippedCount:
+          type: integer
+        warningCount:
+          type: integer
+        errorCount:
+          type: integer
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/CsvImportWarning'
+
+    BackupV1TransactionTag:
+      type: object
+      required: [transactionId, tagName]
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+        tagName:
+          type: string
+    BackupV1Payload:
+      type: object
+      required: [accounts, categories, transactions, transactionTags]
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        transactionTags:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupV1TransactionTag'
+    BackupV1Document:
+      type: object
+      required: [version, exportedAt, currency, data]
+      properties:
+        version:
+          type: string
+          enum: [backup.v1]
+        exportedAt:
+          type: string
+          format: date-time
+        currency:
+          type: string
+          enum: [KRW]
+        data:
+          $ref: '#/components/schemas/BackupV1Payload'
+    BackupImportResultResponse:
+      type: object
+      required: [version, importedAt]
+      properties:
+        version:
+          type: string
+          enum: [backup.v1]
+        importedAt:
+          type: string
+          format: date-time
+
+    CategoryCreateRequest:
+      type: object
+      required: [type, name]
+      properties:
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        name:
+          type: string
+          maxLength: 100
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+        orderIndex:
+          type: integer
+    CategoryPatchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+    CategoryResponse:
+      type: object
+      required: [id, type, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        name:
+          type: string
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+        isActive:
+          type: boolean
+        orderIndex:
+          type: integer
+          nullable: true
+    CategoryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
