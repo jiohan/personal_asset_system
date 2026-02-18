@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: asset-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-asset_db}
+      POSTGRES_USER: ${POSTGRES_USER:-asset}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asset}
+      TZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-asset} -d ${POSTGRES_DB:-asset_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

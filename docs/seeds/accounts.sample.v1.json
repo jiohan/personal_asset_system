@@ -1,0 +1,5 @@
+[
+  { "name": "국민 주거래", "type": "CHECKING", "openingBalance": 1000000, "isActive": true, "orderIndex": 10 },
+  { "name": "카카오 비상금", "type": "SAVINGS", "openingBalance": 300000, "isActive": true, "orderIndex": 20 },
+  { "name": "증권 계좌", "type": "INVESTMENT", "openingBalance": 0, "isActive": true, "orderIndex": 30 }
+]
