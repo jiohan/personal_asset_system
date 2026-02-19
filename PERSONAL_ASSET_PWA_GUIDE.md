@@ -1093,6 +1093,21 @@ CORS
 - MVP에서는 분리 도메인(CORS+credentials) 운영을 보류한다.
   - 분리 도메인으로 가면 쿠키/CSRF/CORS 설정이 크게 복잡해진다.
 
+### 13.9 통합테스트 실행 정책(MVP 고정)
+DB 연동 통합테스트는 Testcontainers(Postgres)로 고정한다.
+
+- 목적
+  - 실제 Postgres 기준으로 app context + Flyway 마이그레이션 + Spring Session JDBC 스키마를 검증
+- 최소 고정 케이스(1개)
+  - 부팅 후 `users/transactions/spring_session/spring_session_attributes` 테이블 존재 확인
+  - `flyway_schema_history` 성공 마이그레이션 수 확인
+- 실행 기준
+  - `cd backend && ./mvnw test`에서 함께 실행
+  - CI는 Docker daemon 사용 가능 상태에서 반드시 실행/통과
+  - Local에서 Docker 사용이 불가하면 통합테스트는 skip될 수 있음(정책 위반 아님)
+- 대안(보류)
+  - 로컬 고정 Postgres 의존 통합테스트는 환경 편차가 커서 MVP 기본 정책에서 제외
+
 ---
 
 ## 14. 구현 방식: Vertical Slice(세로 기능 단위로 끝내기)

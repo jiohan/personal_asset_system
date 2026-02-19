@@ -78,6 +78,12 @@ cd backend && ./mvnw test
 cd frontend && npm run test -- --run
 ```
 
+Integration test policy (MVP fixed):
+- Backend DB integration test uses Testcontainers(Postgres).
+- Purpose: verify app context + Flyway migrations + Spring Session JDBC schema on real Postgres.
+- CI: Docker daemon available 상태에서 반드시 실행/통과.
+- Local: Docker를 사용할 수 없는 환경에서는 해당 통합테스트가 자동 skip될 수 있음.
+
 ## API Contract
 - MVP skeleton: `docs/openapi.yaml`
 - Source of truth: `PERSONAL_ASSET_PWA_GUIDE.md` section 8~14
