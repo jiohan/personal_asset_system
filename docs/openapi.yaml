@@ -4,6 +4,9 @@ info:
   version: 0.2.0-mvp
   description: |
     MVP API contract aligned with PERSONAL_ASSET_PWA_GUIDE.md sections 8~14.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
 servers:
   - url: /api/v1
 
@@ -12,18 +15,26 @@ security:
 
 tags:
   - name: Auth
+    description: Authentication and session lifecycle APIs.
   - name: Accounts
+    description: Account CRUD APIs.
   - name: Transactions
+    description: Transaction CRUD and listing APIs.
   - name: Reports
+    description: Summary and transfer reporting APIs.
   - name: Imports
+    description: CSV import APIs.
   - name: Backups
+    description: Backup export/import APIs.
   - name: Categories
+    description: Category list and user-custom category APIs.
 
 paths:
   /auth/signup:
     post:
       tags: [Auth]
       summary: Sign up
+      operationId: authSignup
       security: []
       requestBody:
         required: true
@@ -45,6 +56,7 @@ paths:
     post:
       tags: [Auth]
       summary: Login
+      operationId: authLogin
       security: []
       requestBody:
         required: true
@@ -68,6 +80,7 @@ paths:
     post:
       tags: [Auth]
       summary: Logout
+      operationId: authLogout
       responses:
         '204':
           description: No Content
@@ -78,6 +91,7 @@ paths:
     get:
       tags: [Auth]
       summary: Current user
+      operationId: authMe
       responses:
         '200':
           description: OK
@@ -92,6 +106,7 @@ paths:
     get:
       tags: [Accounts]
       summary: List accounts
+      operationId: listAccounts
       responses:
         '200':
           description: OK
@@ -104,6 +119,7 @@ paths:
     post:
       tags: [Accounts]
       summary: Create account
+      operationId: createAccount
       requestBody:
         required: true
         content:
@@ -126,6 +142,7 @@ paths:
     patch:
       tags: [Accounts]
       summary: Update account
+      operationId: updateAccount
       parameters:
         - $ref: '#/components/parameters/PathId'
       requestBody:
@@ -152,6 +169,7 @@ paths:
     get:
       tags: [Transactions]
       summary: List transactions
+      operationId: listTransactions
       parameters:
         - $ref: '#/components/parameters/FromDate'
         - $ref: '#/components/parameters/ToDate'
@@ -177,6 +195,7 @@ paths:
     post:
       tags: [Transactions]
       summary: Create transaction
+      operationId: createTransaction
       requestBody:
         required: true
         content:
@@ -203,6 +222,7 @@ paths:
     get:
       tags: [Transactions]
       summary: Get transaction
+      operationId: getTransaction
       parameters:
         - $ref: '#/components/parameters/PathId'
       responses:
@@ -219,6 +239,7 @@ paths:
     patch:
       tags: [Transactions]
       summary: Update transaction
+      operationId: updateTransaction
       description: |
         MVP rule: `type` update is not allowed. To change type, delete and recreate.
       parameters:
@@ -247,6 +268,7 @@ paths:
     delete:
       tags: [Transactions]
       summary: Soft-delete transaction
+      operationId: deleteTransaction
       parameters:
         - $ref: '#/components/parameters/PathId'
       responses:
@@ -261,6 +283,7 @@ paths:
     get:
       tags: [Reports]
       summary: Summary report
+      operationId: getReportSummary
       parameters:
         - $ref: '#/components/parameters/FromDateRequired'
         - $ref: '#/components/parameters/ToDateRequired'
@@ -280,6 +303,7 @@ paths:
     get:
       tags: [Reports]
       summary: Transfer report grouped by account pair
+      operationId: getTransferReport
       parameters:
         - $ref: '#/components/parameters/FromDateRequired'
         - $ref: '#/components/parameters/ToDateRequired'
@@ -299,6 +323,7 @@ paths:
     post:
       tags: [Imports]
       summary: CSV one-shot import
+      operationId: importCsvOneShot
       requestBody:
         required: true
         content:
@@ -329,6 +354,7 @@ paths:
     get:
       tags: [Backups]
       summary: Export backup v1
+      operationId: exportBackupV1
       responses:
         '200':
           description: OK
@@ -343,6 +369,7 @@ paths:
     post:
       tags: [Backups]
       summary: Import backup v1 (replace-all)
+      operationId: importBackupV1
       requestBody:
         required: true
         content:
@@ -370,6 +397,7 @@ paths:
     get:
       tags: [Categories]
       summary: List categories
+      operationId: listCategories
       parameters:
         - in: query
           name: type
@@ -388,6 +416,7 @@ paths:
     post:
       tags: [Categories]
       summary: Create user category
+      operationId: createCategory
       requestBody:
         required: true
         content:
@@ -414,6 +443,7 @@ paths:
     patch:
       tags: [Categories]
       summary: Update user category
+      operationId: updateCategory
       parameters:
         - $ref: '#/components/parameters/PathId'
       requestBody:
