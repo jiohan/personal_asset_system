@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+resolve_range() {
+  if git rev-parse --verify --quiet "@{u}" >/dev/null; then
+    echo "@{u}...HEAD"
+    return
+  fi
+
+  if git rev-parse --verify --quiet "origin/main" >/dev/null; then
+    echo "origin/main...HEAD"
+    return
+  fi
+
+  echo "HEAD~1..HEAD"
+}
+
+RANGE="$(resolve_range)"
+CHANGED_FILES="$(git diff --name-only "$RANGE")"
+
+if [[ -z "$CHANGED_FILES" ]]; then
+  echo "[pre-push] no file changes detected in $RANGE"
+  exit 0
+fi
+
+echo "[pre-push] changed files in $RANGE"
+echo "$CHANGED_FILES"
+
+NEED_BACKEND_GATE=false
+NEED_FRONTEND_GATE=false
+
+if echo "$CHANGED_FILES" | grep -Eq '^(backend/|docs/openapi.yaml$|infra/)'; then
+  NEED_BACKEND_GATE=true
+fi
+
+if echo "$CHANGED_FILES" | grep -Eq '^frontend/'; then
+  NEED_FRONTEND_GATE=true
+fi
+
+if [[ "$NEED_BACKEND_GATE" == false && "$NEED_FRONTEND_GATE" == false ]]; then
+  echo "[pre-push] no quality gates required for this push"
+  exit 0
+fi
+
+echo "[pre-push] running preflight"
+make preflight
+
+if [[ "$NEED_BACKEND_GATE" == true ]]; then
+  echo "[pre-push] running backend + contract gates"
+  make test-backend
+  make contract-lint
+fi
+
+if [[ "$NEED_FRONTEND_GATE" == true ]]; then
+  echo "[pre-push] running frontend gate"
+  make test-frontend
+fi
+
+echo "[pre-push] all required gates passed"

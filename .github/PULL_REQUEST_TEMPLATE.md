@@ -6,6 +6,11 @@
 - In scope:
 - Out of scope:
 
+## Slice Declaration
+- Allowed paths:
+- Forbidden paths:
+- Done criteria:
+
 ## Contract-First Checklist
 - [ ] `docs/openapi.yaml` was updated, or this PR has no API contract impact.
 - [ ] Spec diff was reviewed together with implementation diff.
@@ -17,9 +22,11 @@
 - [ ] DB/Flyway changes reviewed (if applicable).
 
 ## Test Evidence
-- [ ] `cd backend && ./mvnw -B test`
-- [ ] `cd frontend && npm run test -- --run`
-- [ ] `cd frontend && npm run build`
+- [ ] `make preflight`
+- [ ] `make test-backend` (if backend/openapi/migration/infra changed)
+- [ ] `make test-frontend` (if frontend changed)
+- [ ] `make contract-lint` (if backend contract-relevant files changed)
+- [ ] `cd frontend && npm run build` (release/build-impacting UI changes)
 - [ ] Integration test executed (if this PR affects DB/session/contract behavior).
 
 ## Risk / Rollback

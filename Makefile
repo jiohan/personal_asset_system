@@ -1,9 +1,16 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: dev dev-backend dev-frontend postgres-up \
+.PHONY: preflight preflight-docker \
+	dev dev-backend dev-frontend postgres-up \
 	test test-backend test-frontend \
 	build build-backend build-frontend \
 	contract-lint
+
+preflight:
+	./scripts/preflight.sh
+
+preflight-docker:
+	./scripts/preflight.sh --require-docker
 
 dev: postgres-up
 	./scripts/dev.sh

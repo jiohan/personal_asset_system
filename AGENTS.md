@@ -1,20 +1,54 @@
 # AGENTS.md
 
 ## Purpose
-이 프로젝트에서 Codex(에이전트)는 코드 변경뿐 아니라, 사용자가 Git/GitHub 실무를 함께 학습하도록 안내한다.
+이 프로젝트에서 Codex(에이전트)는 코드 변경뿐 아니라, 개발자가 일관된 운영 규칙(역할 분리/검증/PR)을 지키도록 돕는다.
 
-## Core Rule (Always-On)
-모든 최종 답변(`final`)에는 반드시 `Git/GitHub Next Step` 섹션을 포함한다.
+## Agent Operating Model
+- 기본 전략: `Sisyphus(큰 작업)` + `Codex(정밀 마감)`
+- Sisyphus: 멀티파일/수직 슬라이스 구현(스키마 + API + 테스트 + 계약 반영)
+- Codex: 현재 파일 중심 빠른 수정, 리뷰, 리스크 점검, 마무리 리팩터
+- 같은 파일을 두 에이전트가 동시에 수정하지 않는다.
 
-`Git/GitHub Next Step` 섹션에는 아래를 포함한다.
-1. 지금 시점에서 실행할 권장 Git/GitHub 행동 1~3개
-2. 바로 실행 가능한 명령어 (`git` 또는 `gh`)
-3. 권장 커밋 메시지 1개 (Conventional Commits 형식)
+## Scope Ownership (Default)
+### Sisyphus
+- `backend/src/main/resources/db/migration/**`
+- `backend/src/main/java/com/jioha/asset/domain/**`
+- `backend/src/test/**`
+- `docs/openapi.yaml`
+- `infra/**`
 
-작업 변경이 없는 답변이라도, 아래 중 하나는 반드시 제시한다.
-- 현재 브랜치/상태 점검 명령 (`git status`, `git branch -vv`)
-- 다음 작업을 위한 브랜치 전략
-- 원격 백업/PR 준비 행동
+### Codex
+- `backend/src/main/java/com/jioha/asset/api/**`
+- `backend/src/main/java/com/jioha/asset/config/**`
+- `frontend/src/**`
+- 현재 IDE에서 열어둔 파일/선택 영역 중심 수정
+
+## Slice Hand-off Protocol
+1. 작업 시작 전에 아래를 먼저 선언한다.
+- 허용 경로(Allowed paths)
+- 금지 경로(Out of scope)
+- 완료 조건(통과해야 할 테스트/린트)
+2. 작업 종료 시 아래를 함께 남긴다.
+- 변경 파일 목록
+- 실행한 검증 명령과 결과
+- 리스크/후속 작업
+3. 범위를 넘는 수정이 필요하면 새 슬라이스(새 브랜치/새 PR)로 분리한다.
+
+## Quality Gates
+- `backend/**`, `docs/openapi.yaml`, `backend/src/main/resources/db/migration/**` 변경 시:
+  - `make test-backend`
+  - `make contract-lint`
+- `frontend/**` 변경 시:
+  - `make test-frontend`
+- 수직 슬라이스 완료 기준:
+  - `make test-backend && make test-frontend && make contract-lint`
+
+## Runtime Preflight
+- 작업 시작 전 `make preflight` 실행
+- MVP 고정 버전:
+  - Node.js `20.x`
+  - Java `21`
+- DB/세션/마이그레이션 관련 작업은 Docker daemon 가용 상태를 먼저 확인한다.
 
 ## Git Workflow Standard
 - 기본 브랜치: `main`
@@ -43,24 +77,10 @@
   - 광범위 Docker 정리 금지: `docker system prune -a --volumes`
   - `sudo` + 시스템 서비스 제어는 사용자 명시 요청이 있을 때만 허용
 
-## Recommended Response Footer Template
-모든 최종 답변 끝에 아래 템플릿을 사용한다.
-
-### Git/GitHub Next Step
-1. `<now-do-this>`
-2. `<then-do-this>`
-
-```bash
-<commands>
-```
-
-Recommended commit message:
-`<type: summary>`
-
 ## What to Include in AGENTS.md (Reference)
 AGENTS.md에는 보통 아래 항목을 넣는다.
 - 프로젝트 작업 원칙 (브랜치, 리뷰, 테스트, 커밋)
-- 에이전트 출력 형식 규칙 (답변 템플릿, 필수 섹션)
+- 에이전트 운영 규칙 (역할/범위/핸드오프)
 - 안전 규칙 (파괴적 명령 제한)
 - 기술 스택/디렉토리 규칙
 - 우선순위 및 품질 기준

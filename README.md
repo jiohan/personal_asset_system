@@ -37,6 +37,16 @@ java -version
 node -v
 ```
 
+Preflight checks (recommended before coding):
+```bash
+make preflight
+```
+
+If your task touches DB/session/migrations, require Docker in preflight:
+```bash
+make preflight-docker
+```
+
 ## Environment Files
 복사해서 로컬 파일을 만든 뒤 값 입력:
 - `.env.example` -> `.env`
@@ -74,6 +84,23 @@ make dev-backend
 Frontend:
 ```bash
 make dev-frontend
+```
+
+## Local Git Hook (Recommended)
+Install the repository hook path once:
+```bash
+git config core.hooksPath .githooks
+```
+
+What the pre-push hook does:
+- backend/openapi/infra changes -> `make test-backend` + `make contract-lint`
+- frontend changes -> `make test-frontend`
+- runs `make preflight` before gate execution
+
+## Dual-Agent Worktree Setup (Recommended)
+Create dedicated worktrees for Sisyphus and Codex to avoid same-file concurrent edits:
+```bash
+./scripts/worktree-start.sh feat/slice1-accounts-api fix/auth-polish
 ```
 
 ## Test
