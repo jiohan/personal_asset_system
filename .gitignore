@@ -15,6 +15,9 @@ backend/target/
 .idea/
 *.iml
 .DS_Store
+backend/.classpath
+backend/.project
+backend/.settings/
 
 # Local OpenCode state
 .opencode/
