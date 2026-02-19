@@ -36,6 +36,12 @@
 - 위험 명령은 사용자 명시 요청 없이는 금지: `git reset --hard`, `git push --force`
 - 커밋 전 `git status` 확인
 - 병합 전 `git pull --rebase origin main` 또는 최신 `main` 반영 확인
+- 원격 세션/전원 보호:
+  - 시스템 전원/세션 파괴 명령 금지: `shutdown`, `poweroff`, `reboot`, `halt`, `init 0/6`, `systemctl poweroff/reboot`, `wsl.exe --shutdown`, `Stop-Computer`, `Restart-Computer`
+  - 프로세스 광역 강제 종료 금지: `pkill -9 -f`, `killall -9`, `kill -9 -1`
+  - 원격접속/네트워크 인프라 변경 금지: 방화벽/라우팅/SSH/RDP/Guacamole/guacd 설정 변경(사용자 명시 요청 없으면 금지)
+  - 광범위 Docker 정리 금지: `docker system prune -a --volumes`
+  - `sudo` + 시스템 서비스 제어는 사용자 명시 요청이 있을 때만 허용
 
 ## Recommended Response Footer Template
 모든 최종 답변 끝에 아래 템플릿을 사용한다.
@@ -58,4 +64,3 @@ AGENTS.md에는 보통 아래 항목을 넣는다.
 - 안전 규칙 (파괴적 명령 제한)
 - 기술 스택/디렉토리 규칙
 - 우선순위 및 품질 기준
-
