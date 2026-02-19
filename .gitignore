@@ -20,7 +20,9 @@ backend/.project
 backend/.settings/
 
 # Local OpenCode state
-.opencode/
+.opencode/*
+!.opencode/commands/
+!.opencode/commands/**
 
 # Local personal tooling config
 .codex/

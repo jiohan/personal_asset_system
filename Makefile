@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: preflight preflight-docker \
+.PHONY: preflight preflight-docker runtime-doctor ai-check \
 	dev dev-backend dev-frontend postgres-up \
 	test test-backend test-frontend \
 	build build-backend build-frontend \
@@ -11,6 +11,12 @@ preflight:
 
 preflight-docker:
 	./scripts/preflight.sh --require-docker
+
+runtime-doctor:
+	./scripts/runtime-doctor.sh
+
+ai-check:
+	./scripts/ai-check.sh
 
 dev: postgres-up
 	./scripts/dev.sh

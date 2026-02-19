@@ -1,5 +1,6 @@
 package com.jioha.asset.api.common;
 
+import com.jioha.asset.api.auth.EmailAlreadyExistsException;
 import com.jioha.asset.api.auth.InvalidCredentialsException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .body(ApiErrorResponse.of("UNAUTHORIZED", "Invalid email or password"));
+  }
+
+  @ExceptionHandler(EmailAlreadyExistsException.class)
+  public ResponseEntity<ApiErrorResponse> handleEmailAlreadyExists(EmailAlreadyExistsException exception) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(ApiErrorResponse.of("CONFLICT", "Email already exists"));
   }
 
   private ApiErrorResponse.FieldError mapFieldError(FieldError error) {

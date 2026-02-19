@@ -22,28 +22,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-  private final DemoAuthService demoAuthService;
+  private final AuthService authService;
 
-  public AuthController(DemoAuthService demoAuthService) {
-    this.demoAuthService = demoAuthService;
+  public AuthController(AuthService authService) {
+    this.authService = authService;
+  }
+
+  @PostMapping("/signup")
+  @ResponseStatus(HttpStatus.CREATED)
+  public AuthMeResponse signup(@Valid @RequestBody AuthSignupRequest request, HttpServletRequest httpRequest) {
+    SessionUser user = authService.signup(request.email(), request.password());
+    establishAuthenticatedSession(user, httpRequest);
+    return new AuthMeResponse(user.id(), user.email());
   }
 
   @PostMapping("/login")
   public AuthMeResponse login(@Valid @RequestBody AuthLoginRequest request, HttpServletRequest httpRequest) {
-    SessionUser user = demoAuthService.authenticate(request.email(), request.password());
-
-    Authentication authentication = new UsernamePasswordAuthenticationToken(
-        user,
-        null,
-        List.of(new SimpleGrantedAuthority("ROLE_USER")));
-
-    SecurityContext context = SecurityContextHolder.createEmptyContext();
-    context.setAuthentication(authentication);
-    SecurityContextHolder.setContext(context);
-
-    HttpSession session = httpRequest.getSession(true);
-    session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
-
+    SessionUser user = authService.authenticate(request.email(), request.password());
+    establishAuthenticatedSession(user, httpRequest);
     return new AuthMeResponse(user.id(), user.email());
   }
 
@@ -61,5 +57,19 @@ public class AuthController {
       session.invalidate();
     }
     SecurityContextHolder.clearContext();
+  }
+
+  private void establishAuthenticatedSession(SessionUser user, HttpServletRequest httpRequest) {
+    Authentication authentication = new UsernamePasswordAuthenticationToken(
+        user,
+        null,
+        List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+    SecurityContext context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(authentication);
+    SecurityContextHolder.setContext(context);
+
+    HttpSession session = httpRequest.getSession(true);
+    session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
   }
 }

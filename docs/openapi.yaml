@@ -49,6 +49,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthMeResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/ValidationError'
 
@@ -642,6 +644,7 @@ components:
         password:
           type: string
           minLength: 8
+          maxLength: 72
     AuthLoginRequest:
       type: object
       required: [email, password]

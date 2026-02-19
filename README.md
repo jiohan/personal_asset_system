@@ -42,9 +42,19 @@ Preflight checks (recommended before coding):
 make preflight
 ```
 
+If preflight fails, run runtime diagnostics:
+```bash
+make runtime-doctor
+```
+
 If your task touches DB/session/migrations, require Docker in preflight:
 ```bash
 make preflight-docker
+```
+
+AI collaboration readiness check:
+```bash
+make ai-check
 ```
 
 ## Environment Files
@@ -57,6 +67,7 @@ make preflight-docker
 참고:
 - Spring Boot는 `backend/.env.local`을 자동 로드하지 않는다.
 - 백엔드 실행 전 `.env.local`을 shell 환경변수로 주입하거나 IDE Run Configuration 환경변수로 설정한다.
+- 프론트 워킹 스켈레톤은 `VITE_API_BASE_URL`, `VITE_DEMO_EMAIL`, `VITE_DEMO_PASSWORD`를 사용한다.
 
 ## Local Run
 
@@ -103,6 +114,13 @@ Create dedicated worktrees for Sisyphus and Codex to avoid same-file concurrent 
 ./scripts/worktree-start.sh feat/slice1-accounts-api fix/auth-polish
 ```
 
+## AI Operating Guide
+- Day-to-day runbook: `docs/AI_MVP_OPERATING_PLAYBOOK.md`
+- Project guardrails for agents: `AGENTS.md`
+- OpenCode command set (project local): `/slice-start`, `/slice-build`, `/contract-check`, `/handoff-codex`, `/slice-done`
+- Contract coverage tracker: `docs/CONTRACT_IMPLEMENTATION_STATUS.md`
+- Repeatable OpenCode snippets: `.opencode/commands/*`
+
 ## Test
 ```bash
 make test
@@ -121,6 +139,7 @@ Integration test policy (MVP fixed):
 ## API Contract
 - MVP skeleton: `docs/openapi.yaml`
 - Source of truth: `PERSONAL_ASSET_PWA_GUIDE.md` section 8~14
+- Current implementation coverage: `docs/CONTRACT_IMPLEMENTATION_STATUS.md`
 - Contract-first CI policy:
   - `make contract-lint` must pass with zero lint problems.
   - PR with contract-relevant backend changes must include `docs/openapi.yaml` update in the same PR.

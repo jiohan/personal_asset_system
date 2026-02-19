@@ -5,6 +5,7 @@ type AuthUser = {
   email: string;
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '');
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL ?? 'demo@local.dev';
 const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD ?? 'demo12345';
 
@@ -13,9 +14,28 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   async function runWalkingSkeleton() {
+    setStatusText('Ensuring demo user exists...');
+    const signupResponse = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD
+      })
+    });
+
+    if (!signupResponse.ok && signupResponse.status !== 409) {
+      setCurrentUser(null);
+      setStatusText(`Signup failed: ${signupResponse.status}`);
+      return;
+    }
+
     setStatusText('Logging in with demo user...');
 
-    const loginResponse = await fetch('/api/v1/auth/login', {
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -35,7 +55,7 @@ export default function App() {
 
     setStatusText('Loading /auth/me...');
 
-    const meResponse = await fetch('/api/v1/auth/me', {
+    const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
       credentials: 'include'
     });
 
