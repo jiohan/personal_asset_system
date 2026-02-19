@@ -50,33 +50,40 @@ node -v
 
 ## Local Run
 
-### 1) Postgres
+### 1) Fast path (recommended)
 ```bash
-cd infra
-docker compose --env-file .env.example up -d
+make dev
 ```
 
-### 2) Backend
+`make dev` does:
+- start Postgres via `infra/docker compose`
+- run backend (`./mvnw spring-boot:run`)
+- run frontend (`npm run dev`)
+
+### 2) Manual split run (optional)
+Postgres:
 ```bash
-cd backend
-set -a
-source .env.local
-set +a
-./mvnw spring-boot:run
+make postgres-up
 ```
 
-### 3) Frontend
+Backend:
 ```bash
-cd frontend
-npm install
-npm run dev
+make dev-backend
+```
+
+Frontend:
+```bash
+make dev-frontend
 ```
 
 ## Test
 ```bash
-cd backend && ./mvnw test
-cd frontend && npm run test -- --run
+make test
 ```
+
+Details:
+- `make test-backend`
+- `make test-frontend` (`lint + typecheck + test`)
 
 Integration test policy (MVP fixed):
 - Backend DB integration test uses Testcontainers(Postgres).
@@ -87,6 +94,9 @@ Integration test policy (MVP fixed):
 ## API Contract
 - MVP skeleton: `docs/openapi.yaml`
 - Source of truth: `PERSONAL_ASSET_PWA_GUIDE.md` section 8~14
+- Contract-first CI policy:
+  - `make contract-lint` must pass with zero lint problems.
+  - PR with contract-relevant backend changes must include `docs/openapi.yaml` update in the same PR.
 
 ## Seed/Data Notes
 - Seed strategy: `docs/SEED_STRATEGY.md`
