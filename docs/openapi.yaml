@@ -473,7 +473,7 @@ components:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: JSESSIONID
+      name: SESSION
 
   parameters:
     PathId:
