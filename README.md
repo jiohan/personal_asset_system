@@ -19,10 +19,23 @@ docs/       OpenAPI, seed strategy, fixtures
 ```
 
 ## Prerequisites
-- JDK 21 (or 17)
-- Node.js LTS
+- JDK 21 (fixed for MVP)
+- Node.js 20 LTS (fixed for MVP)
 - npm
 - Docker + Docker Compose
+
+## Runtime Version Policy (MVP Fixed)
+- Java: `21` (CI and local must match)
+- Node.js: `20.x` (CI and local must match)
+- Version pin files:
+  - `.java-version` -> `21`
+  - `.nvmrc` -> `20`
+
+Quick checks:
+```bash
+java -version
+node -v
+```
 
 ## Environment Files
 복사해서 로컬 파일을 만든 뒤 값 입력:
