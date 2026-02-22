@@ -3,6 +3,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/asset_db}
     username: ${DB_USERNAME:asset}
     password: ${DB_PASSWORD:asset}
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
   session:
     jdbc:
       initialize-schema: never

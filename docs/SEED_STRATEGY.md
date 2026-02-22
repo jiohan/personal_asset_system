@@ -21,6 +21,18 @@
 4. transactions seed 입력
 5. 리포트 검증(totalExpense, transferVolume)
 
+## 실행 방법(로컬)
+- 로컬 프로필(`SPRING_PROFILES_ACTIVE=local`)에서는 Flyway가 `classpath:db/seed`를 추가로 포함한다.
+- 로컬 DB에 초기 데이터가 필요하면 백엔드 기동 시 1회 적용된다.
+
+관련 파일:
+- `backend/src/main/resources/application-local.yml`
+- `backend/src/main/resources/db/seed/V9000__dev_seed_demo.sql`
+
+주의:
+- Docker Desktop WSL 통합이 꺼져 있으면 `infra/docker-compose.yml`로 DB를 띄울 수 없다.
+- seed를 다시 적용하고 싶다면 DB 볼륨을 지우고 다시 띄우는 방식이 가장 단순하다.
+
 ## 리포트 검증 포인트
 - CHECKING -> INVESTMENT 300000 TRANSFER는 totalExpense에 포함되지 않아야 한다.
 - excludeFromReports=true EXPENSE는 totalExpense에서 제외되어야 한다.

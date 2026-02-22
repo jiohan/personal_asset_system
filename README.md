@@ -19,10 +19,10 @@ docs/       OpenAPI, seed strategy, fixtures
 ```
 
 ## Prerequisites
-- JDK 21 (or 17)
-- Node.js LTS
+- JDK 21
+- Node.js 20 (CI baseline)
 - npm
-- Docker + Docker Compose
+- Docker Desktop + WSL integration (for Postgres via `infra/docker-compose.yml`)
 
 ## Environment Files
 복사해서 로컬 파일을 만든 뒤 값 입력:
@@ -42,6 +42,15 @@ docs/       OpenAPI, seed strategy, fixtures
 cd infra
 docker compose --env-file .env.example up -d
 ```
+
+Smoke check (DB health):
+```bash
+bash scripts/dev/smoke_local.sh
+```
+
+If `docker` is not found in WSL:
+- Enable Docker Desktop -> Settings -> Resources -> WSL Integration for your distro
+- Re-open the terminal and re-run the command
 
 ### 2) Backend
 ```bash
@@ -63,6 +72,22 @@ npm run dev
 ```bash
 cd backend && ./mvnw test
 cd frontend && npm run test -- --run
+```
+
+## MVP Progress Source of Truth
+- Single source of truth: `docs/MVP_TODO_LIST.md`
+- Rule: update progress only by checking/unchecking boxes in that file; Jira/GitHub boards are reference-only.
+
+## Contract/Drift Gates (P0)
+```bash
+# OpenAPI validity gate
+bash scripts/contract/openapi_lint.sh
+
+# Spec <-> implementation drift gate (contract-first enforcement)
+bash scripts/contract/spec_impl_drift.sh
+
+# Breaking change gate (compare against base branch)
+BASE_REF=main bash scripts/contract/openapi_breaking_check.sh
 ```
 
 ## API Contract
