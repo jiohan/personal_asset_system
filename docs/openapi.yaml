@@ -68,6 +68,8 @@ paths:
     post:
       tags: [Auth]
       summary: Logout
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
         '204':
           description: No Content
@@ -104,6 +106,8 @@ paths:
     post:
       tags: [Accounts]
       summary: Create account
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -128,6 +132,7 @@ paths:
       summary: Update account
       parameters:
         - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -177,6 +182,8 @@ paths:
     post:
       tags: [Transactions]
       summary: Create transaction
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -223,6 +230,7 @@ paths:
         MVP rule: `type` update is not allowed. To change type, delete and recreate.
       parameters:
         - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -249,6 +257,7 @@ paths:
       summary: Soft-delete transaction
       parameters:
         - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       responses:
         '204':
           description: No Content
@@ -299,6 +308,8 @@ paths:
     post:
       tags: [Imports]
       summary: CSV one-shot import
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -343,6 +354,8 @@ paths:
     post:
       tags: [Backups]
       summary: Import backup v1 (replace-all)
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -388,6 +401,8 @@ paths:
     post:
       tags: [Categories]
       summary: Create user category
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -416,6 +431,7 @@ paths:
       summary: Update user category
       parameters:
         - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -453,6 +469,16 @@ components:
       schema:
         type: integer
         format: int64
+    CsrfTokenHeader:
+      in: header
+      name: X-XSRF-TOKEN
+      required: false
+      schema:
+        type: string
+      description: |
+        CSRF token header for session-cookie auth.
+        Server sets cookie `XSRF-TOKEN` and the client should echo it in this header for mutating requests.
+        MVP (same-origin + session cookie) expects this header for POST/PATCH/DELETE.
     FromDate:
       in: query
       name: from

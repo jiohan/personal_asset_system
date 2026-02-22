@@ -7,6 +7,22 @@ on:
       - main
 
 jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: OpenAPI lint (validate)
+        run: bash scripts/contract/openapi_lint.sh
+      - name: OpenAPI breaking change check (PR only)
+        if: github.event_name == 'pull_request'
+        run: BASE_REF=main bash scripts/contract/openapi_breaking_check.sh
+      - name: Spec <-> implementation drift check
+        run: bash scripts/contract/spec_impl_drift.sh
+
   backend:
     runs-on: ubuntu-latest
     steps:
