@@ -461,6 +461,7 @@ PATCH 정책(MVP)
   - 총수입: `INCOME` 합(소프트 삭제 제외)
   - 총지출: `EXPENSE` 합(소프트 삭제 + `excludeFromReports=true` 제외)
   - 순저축: `총수입-총지출` (`TRANSFER` 제외)
+  - 자금이동: `TRANSFER` 합(`transferVolume`, 현금흐름과 분리)
 - `GET /api/v1/reports/transfers?from=...&to=...` (200)
   - `TRANSFER` 전용(현금흐름과 분리)
 
@@ -475,7 +476,8 @@ PATCH 정책(MVP)
   "to": "2026-03-01",
   "totalIncome": 5000000,
   "totalExpense": 2500000,
-  "netSaving": 2500000
+  "netSaving": 2500000,
+  "transferVolume": 900000
 }
 ```
 
