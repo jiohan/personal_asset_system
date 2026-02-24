@@ -882,7 +882,7 @@ components:
 
     ReportSummaryResponse:
       type: object
-      required: [from, to, totalIncome, totalExpense, netSaving]
+      required: [from, to, totalIncome, totalExpense, netSaving, transferVolume]
       properties:
         from:
           type: string
@@ -897,6 +897,9 @@ components:
           type: integer
           format: int64
         netSaving:
+          type: integer
+          format: int64
+        transferVolume:
           type: integer
           format: int64
     TransferReportItem:

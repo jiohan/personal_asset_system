@@ -120,12 +120,12 @@ Scope: `/backups/export`, `/backups/import`
 
 ## 6) P0 Readiness Checklist (Single Source of Truth)
 
-- [ ] P0-1 작업 추적 Source of Truth 1개 확정: 진행 상태 변경은 `docs/MVP_TODO_LIST.md` 체크박스에서만
-- [ ] P0-2 실행 명령 체계 통일: mvnw/npm 기반(README/opencode/CI 명령 일치)
-- [ ] P0-3 OpenAPI CI 게이트: lint + breaking change(기본 브랜치 대비)
-- [ ] P0-4 스펙<->구현 드리프트 자동 검출 1개 도입 + 실패 조건 고정
-- [ ] P0-5 인증 정책 동기화(OpenAPI): 세션 쿠키 + CSRF(`XSRF-TOKEN`/`X-XSRF-TOKEN`)가 계약에 보임
-- [ ] P0-6 ADR 2개 문서화: ADR-001 Authentication, ADR-002 Data Ownership
-- [ ] P0-7 로컬 인프라 스모크: DB->BE->FE proxy 동작 확인(WSL Docker Desktop 통합 포함)
-- [ ] P0-8 Seed 실행 방식 고정: 반복 실행 안전 + 리포트 검증 포인트 재현
-- [ ] P0-9 버전 기준 문서 통일: Java 21, Node 20(CI baseline)
+- [x] P0-1 작업 추적 Source of Truth 1개 확정: 진행 상태 변경은 `docs/MVP_TODO_LIST.md` 체크박스에서만
+- [x] P0-2 실행 명령 체계 통일: mvnw/npm 기반(README/opencode/CI 명령 일치)
+- [x] P0-3 OpenAPI CI 게이트: lint + breaking change(기본 브랜치 대비)
+- [x] P0-4 스펙<->구현 드리프트 자동 검출 1개 도입 + 실패 조건 고정
+- [x] P0-5 인증 정책 동기화(OpenAPI): 세션 쿠키 + CSRF(`XSRF-TOKEN`/`X-XSRF-TOKEN`)가 계약에 보임
+- [x] P0-6 ADR 2개 문서화: ADR-001 Authentication, ADR-002 Data Ownership
+- [x] P0-7 로컬 인프라 스모크: DB->BE->FE proxy 동작 확인(WSL Docker Desktop 통합 포함)
+- [x] P0-8 Seed 실행 방식 고정: 반복 실행 안전 + 리포트 검증 포인트 재현
+- [x] P0-9 버전 기준 문서 통일: Java 21, Node 20(CI baseline)

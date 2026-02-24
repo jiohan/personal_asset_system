@@ -48,6 +48,11 @@ Smoke check (DB health):
 bash scripts/dev/smoke_local.sh
 ```
 
+Full-stack smoke check (after backend + frontend are running):
+```bash
+bash scripts/dev/smoke_local.sh --full
+```
+
 If `docker` is not found in WSL:
 - Enable Docker Desktop -> Settings -> Resources -> WSL Integration for your distro
 - Re-open the terminal and re-run the command
