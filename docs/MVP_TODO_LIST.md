@@ -23,12 +23,12 @@
 ### Slice 1. Auth + User Scope Skeleton
 Scope: signup/login/me/logout + 보호 라우트
 
-- [ ] Contract: Auth 4개 엔드포인트 요청/응답/에러 예시 확정
-- [ ] DB: users + session 테이블/설정 검증
-- [ ] API: 인증 성공/실패 및 세션 처리 구현
-- [ ] UI: 로그인/로그아웃, 보호 페이지 가드 연결
-- [ ] Tests: 로그인 성공, 비인증 접근 실패
-- [ ] Edge: 타 사용자 데이터 접근 불가 정책(404/401) 반영
+- [x] Contract: Auth 4개 엔드포인트 요청/응답/에러 예시 확정
+- [x] DB: users + session 테이블/설정 검증
+- [x] API: 인증 성공/실패 및 세션 처리 구현
+- [x] UI: 로그인/로그아웃, 보호 페이지 가드 연결
+- [x] Tests: 로그인 성공, 비인증 접근 실패
+- [x] Edge: 타 사용자 데이터 접근 불가 정책(404/401) 반영
 
 ### Slice 2. Accounts CRUD (User Scope)
 Scope: 계좌 생성/목록/수정(isActive 포함)

@@ -7,10 +7,10 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 
 ## Operations
 
-- [ ] POST /auth/signup
-- [ ] POST /auth/login
-- [ ] POST /auth/logout
-- [ ] GET /auth/me
+- [x] POST /auth/signup
+- [x] POST /auth/login
+- [x] POST /auth/logout
+- [x] GET /auth/me
 
 - [ ] GET /accounts
 - [ ] POST /accounts

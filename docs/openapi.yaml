@@ -75,6 +75,8 @@ paths:
           description: No Content
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /auth/me:
     get:
@@ -590,6 +592,13 @@ components:
           schema:
             $ref: '#/components/schemas/ApiErrorResponse'
 
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+
   schemas:
     ApiErrorResponse:
       type: object
@@ -607,6 +616,13 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/FieldError'
+      example:
+        error:
+          code: VALIDATION_ERROR
+          message: Invalid request.
+          fieldErrors:
+            - field: email
+              reason: must be a well-formed email address
     FieldError:
       type: object
       required: [field, reason]
@@ -638,6 +654,9 @@ components:
         password:
           type: string
           minLength: 8
+      example:
+        email: demo@example.com
+        password: demo-password
     AuthLoginRequest:
       type: object
       required: [email, password]
@@ -648,6 +667,9 @@ components:
         password:
           type: string
           minLength: 1
+      example:
+        email: demo@example.com
+        password: demo
     AuthMeResponse:
       type: object
       required: [id, email]
@@ -658,6 +680,9 @@ components:
         email:
           type: string
           format: email
+      example:
+        id: 1
+        email: demo@example.com
 
     AccountCreateRequest:
       type: object
