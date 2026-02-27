@@ -7,6 +7,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('loading');
   const [me, setMe] = useState<AuthMeResponse | null>(null);
   const [error, setError] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +44,7 @@ export default function App() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     try {
       const res = tab === 'login'
         ? await login({ email, password })
@@ -52,17 +54,25 @@ export default function App() {
       setPassword('');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Request failed.');
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function onLogout() {
     setError('');
+    setSubmitting(true);
     try {
       await logout();
       setMe(null);
       setMode('unauth');
     } catch (err: unknown) {
+      // Slice1 hardening: even if logout fails (network), clear local state to avoid a stuck UI.
+      setMe(null);
+      setMode('unauth');
       setError(err instanceof Error ? err.message : 'Logout failed.');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -71,7 +81,7 @@ export default function App() {
       <header className="app-header">
         <h1>{title}</h1>
         {mode === 'auth' ? (
-          <button type="button" className="btn" onClick={onLogout}>Logout</button>
+          <button type="button" className="btn" onClick={onLogout} disabled={submitting}>Logout</button>
         ) : null}
       </header>
 
@@ -127,7 +137,7 @@ export default function App() {
               />
             </label>
             <button className="btn btn-primary" type="submit">
-              {tab === 'login' ? 'Sign in' : 'Create account'}
+              {submitting ? 'Working...' : (tab === 'login' ? 'Sign in' : 'Create account')}
             </button>
           </form>
 

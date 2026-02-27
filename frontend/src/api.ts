@@ -47,6 +47,12 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   });
 }
 
+async function ensureXsrfCookie(): Promise<void> {
+  // Slice1 hardening: backend requires XSRF cookie + X-XSRF-TOKEN header for POST endpoints.
+  if (getCookie('XSRF-TOKEN')) return;
+  await apiFetch('/auth/csrf');
+}
+
 async function readJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
@@ -72,6 +78,7 @@ export async function getMe(): Promise<AuthMeResponse | null> {
 }
 
 export async function signup(req: AuthSignupRequest): Promise<AuthMeResponse> {
+  await ensureXsrfCookie();
   const res = await apiFetch('/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,6 +88,7 @@ export async function signup(req: AuthSignupRequest): Promise<AuthMeResponse> {
 }
 
 export async function login(req: AuthLoginRequest): Promise<AuthMeResponse> {
+  await ensureXsrfCookie();
   const res = await apiFetch('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -90,6 +98,7 @@ export async function login(req: AuthLoginRequest): Promise<AuthMeResponse> {
 }
 
 export async function logout(): Promise<void> {
+  await ensureXsrfCookie();
   const res = await apiFetch('/auth/logout', { method: 'POST' });
   if (res.status === 204) return;
   await requireOkJson<unknown>(res);

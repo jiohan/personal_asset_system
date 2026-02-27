@@ -17,6 +17,7 @@ describe('App', () => {
   });
 
   it('logs in and shows protected area', async () => {
+    document.cookie = 'XSRF-TOKEN=abc';
     const email = 'demo@example.com';
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
