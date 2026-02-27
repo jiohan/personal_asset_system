@@ -25,6 +25,9 @@ paths:
       tags: [Auth]
       summary: Sign up
       security: []
+      # Slice1 hardening: CSRF header is required for POST (cookie-based XSRF).
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -38,6 +41,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthMeResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
 
@@ -46,6 +53,9 @@ paths:
       tags: [Auth]
       summary: Login
       security: []
+      # Slice1 hardening: CSRF header is required for POST (cookie-based XSRF).
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -61,8 +71,19 @@ paths:
                 $ref: '#/components/schemas/AuthMeResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: CSRF bootstrap (sets XSRF-TOKEN cookie)
+      security: []
+      responses:
+        '204':
+          description: No Content
 
   /auth/logout:
     post:
