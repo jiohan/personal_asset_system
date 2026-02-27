@@ -20,12 +20,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.util.StringUtils;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.function.Supplier;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @Configuration
 @EnableWebSecurity
@@ -39,7 +44,7 @@ public class SecurityConfig {
   @Bean
   public UserDetailsService userDetailsService(UserRepository userRepository) {
     return (username) -> userRepository.findByEmailNormalized(normalizeEmail(username))
-        .map((u) -> new com.jioha.asset.auth.AuthUserPrincipal(
+        .map((u) -> new com.jioha.asset.auth.AuthUserDetails(
             u.getId(),
             u.getEmail(),
             u.getEmailNormalized(),
@@ -75,17 +80,13 @@ public class SecurityConfig {
 
     http.csrf((csrf) -> csrf
         .csrfTokenRepository(csrfTokenRepository)
-        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-        .ignoringRequestMatchers(
-            new AntPathRequestMatcher("/api/v1/auth/signup"),
-            new AntPathRequestMatcher("/api/v1/auth/login")));
-
-    http.addFilterAfter(new CsrfCookieFilter(csrfTokenRepository), CsrfFilter.class);
+        // Slice1 hardening: align SPA CSRF handling with Spring Security reference.
+        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()));
 
     http.sessionManagement((sm) -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
     http.authorizeHttpRequests((auth) -> auth
-        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login").permitAll()
+        .requestMatchers("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/csrf").permitAll()
         .anyRequest().authenticated());
 
     http.exceptionHandling((eh) -> eh
@@ -109,5 +110,23 @@ public class SecurityConfig {
   private static String normalizeEmail(String email) {
     if (email == null) return "";
     return email.trim().toLowerCase(Locale.ROOT);
+  }
+
+  // Slice1 hardening: official SPA example - use plain token when header is present (cookie -> header).
+  static final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
+    private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();
+    private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
+
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
+      this.xor.handle(request, response, csrfToken);
+      csrfToken.get();
+    }
+
+    @Override
+    public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+      String headerValue = request.getHeader(csrfToken.getHeaderName());
+      return (StringUtils.hasText(headerValue) ? this.plain : this.xor).resolveCsrfTokenValue(request, csrfToken);
+    }
   }
 }

@@ -18,6 +18,12 @@ public class AuthController {
     this.authService = authService;
   }
 
+  // Slice1 hardening: CSRF bootstrap endpoint (GET triggers XSRF-TOKEN cookie issuance).
+  @GetMapping("/csrf")
+  public ResponseEntity<Void> csrf() {
+    return ResponseEntity.noContent().build();
+  }
+
   @PostMapping("/signup")
   public ResponseEntity<AuthMeResponse> signup(@Valid @RequestBody AuthSignupRequest request,
       jakarta.servlet.http.HttpServletRequest httpRequest,

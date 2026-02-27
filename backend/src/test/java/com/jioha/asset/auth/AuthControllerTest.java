@@ -50,7 +50,18 @@ class AuthControllerTest {
     String email = "u-" + UUID.randomUUID() + "@example.com";
     String password = "demo-password";
 
+    // Slice1 hardening: login/signup are CSRF-protected, bootstrap XSRF cookie first.
+    MvcResult csrf = mvc.perform(get("/api/v1/auth/csrf"))
+        .andExpect(status().isNoContent())
+        .andExpect(cookie().exists("XSRF-TOKEN"))
+        .andReturn();
+
+    String xsrf = csrf.getResponse().getCookie("XSRF-TOKEN").getValue();
+    jakarta.servlet.http.Cookie xsrfCookie = new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf);
+
     MvcResult signup = mvc.perform(post("/api/v1/auth/signup")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", email,
@@ -58,7 +69,6 @@ class AuthControllerTest {
             ))))
         .andExpect(status().isCreated())
         .andExpect(cookie().exists("JSESSIONID"))
-        .andExpect(cookie().exists("XSRF-TOKEN"))
         .andExpect(jsonPath("$.email").value(email))
         .andReturn();
 
@@ -72,11 +82,22 @@ class AuthControllerTest {
   }
 
   @Test
-  void login_logout_flow_enforcesCsrf_forLogout() throws Exception {
+  void signup_duplicateEmail_returnsConflict() throws Exception {
     String email = "u-" + UUID.randomUUID() + "@example.com";
     String password = "demo-password";
 
+    // Slice1 hardening: login/signup are CSRF-protected, bootstrap XSRF cookie first.
+    MvcResult csrf = mvc.perform(get("/api/v1/auth/csrf"))
+        .andExpect(status().isNoContent())
+        .andExpect(cookie().exists("XSRF-TOKEN"))
+        .andReturn();
+
+    String xsrf = csrf.getResponse().getCookie("XSRF-TOKEN").getValue();
+    jakarta.servlet.http.Cookie xsrfCookie = new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf);
+
     mvc.perform(post("/api/v1/auth/signup")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", email,
@@ -84,14 +105,45 @@ class AuthControllerTest {
             ))))
         .andExpect(status().isCreated());
 
-    MvcResult anonMe = mvc.perform(get("/api/v1/auth/me"))
-        .andExpect(status().isUnauthorized())
+    mvc.perform(post("/api/v1/auth/signup")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "email", email,
+                "password", password
+            ))))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+  }
+
+  @Test
+  void login_logout_flow_enforcesCsrf_forLogout() throws Exception {
+    String email = "u-" + UUID.randomUUID() + "@example.com";
+    String password = "demo-password";
+
+    // Slice1 hardening: bootstrap CSRF cookie.
+    MvcResult csrf = mvc.perform(get("/api/v1/auth/csrf"))
+        .andExpect(status().isNoContent())
         .andExpect(cookie().exists("XSRF-TOKEN"))
         .andReturn();
 
-    String xsrf = anonMe.getResponse().getCookie("XSRF-TOKEN").getValue();
+    String xsrf = csrf.getResponse().getCookie("XSRF-TOKEN").getValue();
+    jakarta.servlet.http.Cookie xsrfCookie = new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf);
+
+    mvc.perform(post("/api/v1/auth/signup")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "email", email,
+                "password", password
+            ))))
+        .andExpect(status().isCreated());
 
     MvcResult login = mvc.perform(post("/api/v1/auth/login")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", email,
@@ -105,14 +157,14 @@ class AuthControllerTest {
 
     mvc.perform(post("/api/v1/auth/logout")
             .cookie(new jakarta.servlet.http.Cookie("JSESSIONID", sessionId))
-            .cookie(new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf)))
+            .cookie(xsrfCookie))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
 
     mvc.perform(post("/api/v1/auth/logout")
             .header("X-XSRF-TOKEN", xsrf)
             .cookie(new jakarta.servlet.http.Cookie("JSESSIONID", sessionId))
-            .cookie(new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf)))
+            .cookie(xsrfCookie))
         .andExpect(status().isNoContent());
 
     mvc.perform(get("/api/v1/auth/me")
@@ -124,7 +176,19 @@ class AuthControllerTest {
   void login_doesNotRevealWhetherUserExists() throws Exception {
     String email = "u-" + UUID.randomUUID() + "@example.com";
     String password = "demo-password";
+
+    // Slice1 hardening: bootstrap CSRF cookie.
+    MvcResult csrf = mvc.perform(get("/api/v1/auth/csrf"))
+        .andExpect(status().isNoContent())
+        .andExpect(cookie().exists("XSRF-TOKEN"))
+        .andReturn();
+
+    String xsrf = csrf.getResponse().getCookie("XSRF-TOKEN").getValue();
+    jakarta.servlet.http.Cookie xsrfCookie = new jakarta.servlet.http.Cookie("XSRF-TOKEN", xsrf);
+
     mvc.perform(post("/api/v1/auth/signup")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", email,
@@ -133,6 +197,8 @@ class AuthControllerTest {
         .andExpect(status().isCreated());
 
     MvcResult wrongPassword = mvc.perform(post("/api/v1/auth/login")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", email,
@@ -143,6 +209,8 @@ class AuthControllerTest {
         .andReturn();
 
     MvcResult wrongEmail = mvc.perform(post("/api/v1/auth/login")
+            .header("X-XSRF-TOKEN", xsrf)
+            .cookie(xsrfCookie)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "email", "nope-" + UUID.randomUUID() + "@example.com",
