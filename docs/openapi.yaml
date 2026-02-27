@@ -25,6 +25,9 @@ paths:
       tags: [Auth]
       summary: Sign up
       security: []
+      # Slice1 hardening: CSRF header is required for POST (cookie-based XSRF).
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -38,6 +41,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthMeResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
 
@@ -46,6 +53,9 @@ paths:
       tags: [Auth]
       summary: Login
       security: []
+      # Slice1 hardening: CSRF header is required for POST (cookie-based XSRF).
+      parameters:
+        - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
         required: true
         content:
@@ -61,8 +71,19 @@ paths:
                 $ref: '#/components/schemas/AuthMeResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: CSRF bootstrap (sets XSRF-TOKEN cookie)
+      security: []
+      responses:
+        '204':
+          description: No Content
 
   /auth/logout:
     post:
@@ -75,6 +96,8 @@ paths:
           description: No Content
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /auth/me:
     get:
@@ -590,6 +613,13 @@ components:
           schema:
             $ref: '#/components/schemas/ApiErrorResponse'
 
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+
   schemas:
     ApiErrorResponse:
       type: object
@@ -607,6 +637,13 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/FieldError'
+      example:
+        error:
+          code: VALIDATION_ERROR
+          message: Invalid request.
+          fieldErrors:
+            - field: email
+              reason: must be a well-formed email address
     FieldError:
       type: object
       required: [field, reason]
@@ -638,6 +675,9 @@ components:
         password:
           type: string
           minLength: 8
+      example:
+        email: demo@example.com
+        password: demo-password
     AuthLoginRequest:
       type: object
       required: [email, password]
@@ -648,6 +688,9 @@ components:
         password:
           type: string
           minLength: 1
+      example:
+        email: demo@example.com
+        password: demo
     AuthMeResponse:
       type: object
       required: [id, email]
@@ -658,6 +701,9 @@ components:
         email:
           type: string
           format: email
+      example:
+        id: 1
+        email: demo@example.com
 
     AccountCreateRequest:
       type: object
