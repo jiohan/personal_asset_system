@@ -3,18 +3,13 @@
 ## Purpose
 이 프로젝트에서 Codex(에이전트)는 코드 변경뿐 아니라, 사용자가 Git/GitHub 실무를 함께 학습하도록 안내한다.
 
-## Core Rule (Always-On)
-모든 최종 답변(`final`)에는 반드시 `Git/GitHub Next Step` 섹션을 포함한다.
+## Core Rule
+`Git/GitHub Next Step` 섹션은 기본적으로 자동 포함하지 않는다.
 
-`Git/GitHub Next Step` 섹션에는 아래를 포함한다.
-1. 지금 시점에서 실행할 권장 Git/GitHub 행동 1~3개
-2. 바로 실행 가능한 명령어 (`git` 또는 `gh`)
-3. 권장 커밋 메시지 1개 (Conventional Commits 형식)
-
-작업 변경이 없는 답변이라도, 아래 중 하나는 반드시 제시한다.
-- 현재 브랜치/상태 점검 명령 (`git status`, `git branch -vv`)
-- 다음 작업을 위한 브랜치 전략
-- 원격 백업/PR 준비 행동
+아래 경우에만 선택적으로 포함한다.
+1. 사용자가 Git/GitHub 액션 가이드를 명시적으로 요청한 경우
+2. 사용자가 브랜치/커밋/PR 진행 방법을 물은 경우
+3. 사용자가 다음 Git 명령 추천을 요청한 경우
 
 ## Git Workflow Standard
 - 기본 브랜치: `main`
@@ -38,7 +33,7 @@
 - 병합 전 `git pull --rebase origin main` 또는 최신 `main` 반영 확인
 
 ## Recommended Response Footer Template
-모든 최종 답변 끝에 아래 템플릿을 사용한다.
+`Git/GitHub Next Step`가 필요한 경우에만 아래 템플릿을 사용한다.
 
 ### Git/GitHub Next Step
 1. `<now-do-this>`
@@ -58,4 +53,3 @@ AGENTS.md에는 보통 아래 항목을 넣는다.
 - 안전 규칙 (파괴적 명령 제한)
 - 기술 스택/디렉토리 규칙
 - 우선순위 및 품질 기준
-
