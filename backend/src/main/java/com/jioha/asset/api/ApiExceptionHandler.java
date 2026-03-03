@@ -6,6 +6,8 @@ import com.jioha.asset.auth.RequestValidationException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
   // Slice1 hardening: map DB constraint violations (e.g. unique email) to 409 instead of 500.
   @ExceptionHandler(DataIntegrityViolationException.class)
@@ -67,6 +71,7 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception e) {
+    log.error("Unhandled exception", e);
     return ResponseEntity.status(500)
         .body(new ApiErrorResponse(new ApiError("INTERNAL_ERROR", "Internal server error.", null)));
   }
