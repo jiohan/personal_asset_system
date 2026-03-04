@@ -174,8 +174,8 @@ public class TransactionService {
       ensureActiveAccountOwnership(userId, draft.accountId(), "accountId");
     }
     if (draft.categoryId() != null) {
-      CategoryEntity category = categoryRepository.findVisibleById(draft.categoryId(), userId)
-          .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Category not found."));
+        CategoryEntity category = categoryRepository.findAccessibleById(draft.categoryId(), userId)
+            .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Category not found."));
       if (!category.isActive()) {
         throw new ResponseStatusException(CONFLICT, "Inactive category cannot be used.");
       }

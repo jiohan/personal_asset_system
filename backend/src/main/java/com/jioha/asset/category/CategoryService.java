@@ -29,7 +29,7 @@ public class CategoryService {
 
   public CategoryListResponse list(TransactionType type) {
     long userId = currentUserId();
-    List<CategoryResponse> items = categoryRepository.findVisibleForUser(userId, type).stream()
+    List<CategoryResponse> items = categoryRepository.findAccessibleForUser(userId, type).stream()
         .map(this::toResponse)
         .toList();
     return new CategoryListResponse(items);
@@ -53,7 +53,7 @@ public class CategoryService {
   @Transactional
   public CategoryResponse patch(long id, CategoryPatchRequest request, boolean parentIdProvided) {
     long userId = currentUserId();
-    CategoryEntity entity = categoryRepository.findVisibleById(id, userId)
+    CategoryEntity entity = categoryRepository.findAccessibleById(id, userId)
         .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Category not found."));
 
     if (entity.getUserId() == null) {
@@ -99,7 +99,7 @@ public class CategoryService {
     if (parentId == null) {
       return null;
     }
-    CategoryEntity parent = categoryRepository.findVisibleById(parentId, userId)
+    CategoryEntity parent = categoryRepository.findAccessibleById(parentId, userId)
         .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Parent category not found."));
     if (parent.getType() != type) {
       throw new RequestValidationException(
