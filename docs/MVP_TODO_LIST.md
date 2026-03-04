@@ -33,11 +33,11 @@ Scope: signup/login/me/logout + 보호 라우트
 ### Slice 2. Accounts CRUD (User Scope)
 Scope: 계좌 생성/목록/수정(isActive 포함)
 
-- [ ] Contract: `/accounts`, `/accounts/{id}` 예시/검증 규칙 확정
-- [ ] DB: account 제약(type/opening_balance/is_active) 검증
-- [ ] API: 계좌 CRUD + user scope 필터
-- [ ] UI: 계좌 목록/생성/수정 플로우 연결
-- [ ] Tests: 본인 계좌 정상, 타 유저 계좌 접근 차단
+- [x] Contract: `/accounts`, `/accounts/{id}` 예시/검증 규칙 확정
+- [x] DB: account 제약(type/opening_balance/is_active) 검증
+- [x] API: 계좌 CRUD + user scope 필터
+- [x] UI: 계좌 목록/생성/수정 플로우 연결
+- [x] Tests: 본인 계좌 정상, 타 유저 계좌 접근 차단
 
 ### Slice 3. Transactions CRUD (INCOME/EXPENSE) + List Rules
 Scope: 수입/지출 생성/수정/삭제 + 목록 필터

@@ -21,6 +21,36 @@ export type AuthSignupRequest = {
   password: string;
 };
 
+export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH' | 'INVESTMENT';
+
+export type AccountResponse = {
+  id: number;
+  name: string;
+  type: AccountType;
+  isActive: boolean;
+  orderIndex: number | null;
+  openingBalance: number;
+  currentBalance?: number | null;
+};
+
+export type AccountListResponse = {
+  items: AccountResponse[];
+};
+
+export type AccountCreateRequest = {
+  name: string;
+  type: AccountType;
+  isActive?: boolean;
+  orderIndex?: number;
+  openingBalance?: number;
+};
+
+export type AccountPatchRequest = {
+  name?: string;
+  isActive?: boolean;
+  orderIndex?: number;
+};
+
 function getCookie(name: string): string | null {
   const prefix = `${encodeURIComponent(name)}=`;
   for (const part of document.cookie.split(';')) {
@@ -102,4 +132,29 @@ export async function logout(): Promise<void> {
   const res = await apiFetch('/auth/logout', { method: 'POST' });
   if (res.status === 204) return;
   await requireOkJson<unknown>(res);
+}
+
+export async function listAccounts(): Promise<AccountListResponse> {
+  const res = await apiFetch('/accounts');
+  return requireOkJson<AccountListResponse>(res);
+}
+
+export async function createAccount(req: AccountCreateRequest): Promise<AccountResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch('/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<AccountResponse>(res);
+}
+
+export async function patchAccount(id: number, req: AccountPatchRequest): Promise<AccountResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch(`/accounts/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<AccountResponse>(res);
 }

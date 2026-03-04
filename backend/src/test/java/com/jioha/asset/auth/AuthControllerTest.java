@@ -73,6 +73,8 @@ class AuthControllerTest {
         .andReturn();
 
     String sessionId = signup.getResponse().getCookie("JSESSIONID").getValue();
+    assertThat(signup.getResponse().getHeaders("Set-Cookie")).anyMatch((header) ->
+        header.startsWith("JSESSIONID=") && header.contains("HttpOnly") && header.contains("SameSite=Lax"));
 
     mvc.perform(get("/api/v1/auth/me")
             .cookie(new jakarta.servlet.http.Cookie("JSESSIONID", sessionId)))

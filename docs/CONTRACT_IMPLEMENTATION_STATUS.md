@@ -13,9 +13,9 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 - [x] GET /auth/me
 - [x] GET /auth/csrf
 
-- [ ] GET /accounts
-- [ ] POST /accounts
-- [ ] PATCH /accounts/{id}
+- [x] GET /accounts
+- [x] POST /accounts
+- [x] PATCH /accounts/{id}
 
 - [ ] GET /transactions
 - [ ] POST /transactions
