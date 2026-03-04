@@ -4,7 +4,11 @@ import com.jioha.asset.api.ApiErrorResponse.FieldError;
 import com.jioha.asset.auth.AuthUserDetails;
 import com.jioha.asset.auth.AuthUserPrincipal;
 import com.jioha.asset.auth.RequestValidationException;
+import com.jioha.asset.transaction.AccountBalanceProjection;
+import com.jioha.asset.transaction.TransactionRepository;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,15 +23,18 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class AccountService {
 
   private final AccountRepository accountRepository;
+  private final TransactionRepository transactionRepository;
 
-  public AccountService(AccountRepository accountRepository) {
+  public AccountService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
     this.accountRepository = accountRepository;
+    this.transactionRepository = transactionRepository;
   }
 
   public AccountListResponse list() {
     long userId = currentUserId();
+    Map<Long, Long> currentBalances = loadCurrentBalances(userId);
     List<AccountResponse> items = accountRepository.findAllByUserIdOrderForList(userId).stream()
-        .map(this::toResponse)
+        .map((a) -> toResponse(a, currentBalances))
         .toList();
     return new AccountListResponse(items);
   }
@@ -43,7 +50,8 @@ public class AccountService {
     entity.setOrderIndex(request.orderIndex());
     entity.setOpeningBalance(request.openingBalance() == null ? 0 : request.openingBalance());
 
-    return toResponse(accountRepository.save(entity));
+    AccountEntity saved = accountRepository.save(entity);
+    return toResponse(saved, loadCurrentBalances(userId));
   }
 
   @Transactional
@@ -71,7 +79,15 @@ public class AccountService {
       entity.setOrderIndex(request.orderIndex());
     }
 
-    return toResponse(entity);
+    return toResponse(entity, loadCurrentBalances(userId));
+  }
+
+  private Map<Long, Long> loadCurrentBalances(long userId) {
+    Map<Long, Long> map = new HashMap<>();
+    for (AccountBalanceProjection balance : transactionRepository.findCurrentBalancesByUserId(userId)) {
+      map.put(balance.getAccountId(), balance.getCurrentBalance());
+    }
+    return map;
   }
 
   private long currentUserId() {
@@ -88,7 +104,7 @@ public class AccountService {
     throw new ResponseStatusException(UNAUTHORIZED, "Unauthorized.");
   }
 
-  private AccountResponse toResponse(AccountEntity entity) {
+  private AccountResponse toResponse(AccountEntity entity, Map<Long, Long> currentBalances) {
     return new AccountResponse(
         entity.getId(),
         entity.getName(),
@@ -96,6 +112,6 @@ public class AccountService {
         entity.isActive(),
         entity.getOrderIndex(),
         entity.getOpeningBalance(),
-        null);
+        currentBalances.getOrDefault(entity.getId(), entity.getOpeningBalance()));
   }
 }

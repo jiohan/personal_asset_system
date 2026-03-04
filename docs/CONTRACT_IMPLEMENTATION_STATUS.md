@@ -17,11 +17,11 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 - [x] POST /accounts
 - [x] PATCH /accounts/{id}
 
-- [ ] GET /transactions
-- [ ] POST /transactions
-- [ ] GET /transactions/{id}
-- [ ] PATCH /transactions/{id}
-- [ ] DELETE /transactions/{id}
+- [x] GET /transactions
+- [x] POST /transactions
+- [x] GET /transactions/{id}
+- [x] PATCH /transactions/{id}
+- [x] DELETE /transactions/{id}
 
 - [ ] GET /reports/summary
 - [ ] GET /reports/transfers
@@ -31,6 +31,6 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 - [ ] GET /backups/export
 - [ ] POST /backups/import
 
-- [ ] GET /categories
-- [ ] POST /categories
-- [ ] PATCH /categories/{id}
+- [x] GET /categories
+- [x] POST /categories
+- [x] PATCH /categories/{id}

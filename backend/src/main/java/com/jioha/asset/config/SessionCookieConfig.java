@@ -12,7 +12,7 @@ public class SessionCookieConfig {
   @Bean
   public CookieSerializer cookieSerializer(
       @Value("${app.security.session-cookie.use-http-only-cookie:true}") boolean useHttpOnlyCookie,
-      @Value("${app.security.session-cookie.use-secure-cookie:false}") boolean useSecureCookie,
+      @Value("${app.security.session-cookie.use-secure-cookie:true}") boolean useSecureCookie,
       @Value("${app.security.session-cookie.same-site:Lax}") String sameSite) {
     // Slice1 hardening: Spring Session defaults to cookie name "SESSION"; align to contract "JSESSIONID".
     DefaultCookieSerializer serializer = new DefaultCookieSerializer();
