@@ -117,6 +117,9 @@ paths:
     get:
       tags: [Accounts]
       summary: List accounts
+      description: |
+        MVP Slice2 returns both active and inactive accounts.
+        Clients may hide inactive entries by default.
       responses:
         '200':
           description: OK
@@ -756,6 +759,8 @@ components:
           type: integer
           format: int64
           nullable: true
+          description: |
+            Derived value. Slice2 may return null until transaction slices are implemented.
     AccountListResponse:
       type: object
       required: [items]
