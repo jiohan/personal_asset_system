@@ -22,6 +22,8 @@ export type AuthSignupRequest = {
 };
 
 export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH' | 'INVESTMENT';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type SourceType = 'MANUAL' | 'CSV';
 
 export type AccountResponse = {
   id: number;
@@ -47,6 +49,85 @@ export type AccountCreateRequest = {
 
 export type AccountPatchRequest = {
   name?: string;
+  isActive?: boolean;
+  orderIndex?: number;
+};
+
+export type TransactionResponse = {
+  id: number;
+  txDate: string;
+  type: TransactionType;
+  amount: number;
+  accountId?: number | null;
+  fromAccountId?: number | null;
+  toAccountId?: number | null;
+  description: string;
+  categoryId?: number | null;
+  tagNames: string[];
+  needsReview: boolean;
+  excludeFromReports: boolean;
+  source: SourceType;
+  deletedAt?: string | null;
+};
+
+export type PagedTransactionResponse = {
+  items: TransactionResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+};
+
+export type TransactionCreateRequest = {
+  txDate: string;
+  type: TransactionType;
+  amount: number;
+  accountId?: number;
+  fromAccountId?: number;
+  toAccountId?: number;
+  description?: string;
+  categoryId?: number;
+  tagNames?: string[];
+  needsReview?: boolean;
+  excludeFromReports?: boolean;
+};
+
+export type TransactionPatchRequest = {
+  txDate?: string;
+  amount?: number;
+  accountId?: number;
+  fromAccountId?: number;
+  toAccountId?: number;
+  description?: string;
+  categoryId?: number;
+  tagNames?: string[];
+  needsReview?: boolean;
+  excludeFromReports?: boolean;
+};
+
+export type CategoryResponse = {
+  id: number;
+  type: TransactionType;
+  name: string;
+  parentId?: number | null;
+  isActive: boolean;
+  orderIndex?: number | null;
+};
+
+export type CategoryListResponse = {
+  items: CategoryResponse[];
+};
+
+export type CategoryCreateRequest = {
+  type: TransactionType;
+  name: string;
+  parentId?: number;
+  isActive?: boolean;
+  orderIndex?: number;
+};
+
+export type CategoryPatchRequest = {
+  name?: string;
+  parentId?: number;
   isActive?: boolean;
   orderIndex?: number;
 };
@@ -157,4 +238,90 @@ export async function patchAccount(id: number, req: AccountPatchRequest): Promis
     body: JSON.stringify(req)
   });
   return requireOkJson<AccountResponse>(res);
+}
+
+export async function listTransactions(params: {
+  from?: string;
+  to?: string;
+  accountId?: number;
+  type?: TransactionType;
+  categoryId?: number;
+  needsReview?: boolean;
+  q?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+} = {}): Promise<PagedTransactionResponse> {
+  const query = new URLSearchParams();
+  if (params.from) query.set('from', params.from);
+  if (params.to) query.set('to', params.to);
+  if (params.accountId != null) query.set('accountId', String(params.accountId));
+  if (params.type) query.set('type', params.type);
+  if (params.categoryId != null) query.set('categoryId', String(params.categoryId));
+  if (params.needsReview != null) query.set('needsReview', String(params.needsReview));
+  if (params.q) query.set('q', params.q);
+  if (params.page != null) query.set('page', String(params.page));
+  if (params.size != null) query.set('size', String(params.size));
+  if (params.sort) query.set('sort', params.sort);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const res = await apiFetch(`/transactions${suffix}`);
+  return requireOkJson<PagedTransactionResponse>(res);
+}
+
+export async function createTransaction(req: TransactionCreateRequest): Promise<TransactionResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch('/transactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<TransactionResponse>(res);
+}
+
+export async function getTransaction(id: number): Promise<TransactionResponse> {
+  const res = await apiFetch(`/transactions/${id}`);
+  return requireOkJson<TransactionResponse>(res);
+}
+
+export async function patchTransaction(id: number, req: TransactionPatchRequest): Promise<TransactionResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch(`/transactions/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<TransactionResponse>(res);
+}
+
+export async function deleteTransaction(id: number): Promise<void> {
+  await ensureXsrfCookie();
+  const res = await apiFetch(`/transactions/${id}`, { method: 'DELETE' });
+  if (res.status === 204) return;
+  await requireOkJson<unknown>(res);
+}
+
+export async function listCategories(type?: TransactionType): Promise<CategoryListResponse> {
+  const suffix = type ? `?type=${encodeURIComponent(type)}` : '';
+  const res = await apiFetch(`/categories${suffix}`);
+  return requireOkJson<CategoryListResponse>(res);
+}
+
+export async function createCategory(req: CategoryCreateRequest): Promise<CategoryResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch('/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<CategoryResponse>(res);
+}
+
+export async function patchCategory(id: number, req: CategoryPatchRequest): Promise<CategoryResponse> {
+  await ensureXsrfCookie();
+  const res = await apiFetch(`/categories/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  return requireOkJson<CategoryResponse>(res);
 }

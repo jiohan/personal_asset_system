@@ -38,6 +38,20 @@ describe('App', () => {
         });
       }
 
+      if (url === '/api/v1/categories') {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url.startsWith('/api/v1/transactions')) {
+        return new Response(JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       return new Response(null, { status: 404 });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -68,6 +82,20 @@ describe('App', () => {
 
       if (url === '/api/v1/accounts') {
         return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/v1/categories') {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url.startsWith('/api/v1/transactions')) {
+        return new Response(JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0 }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -129,6 +157,20 @@ describe('App', () => {
         });
       }
 
+      if (url === '/api/v1/categories') {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url.startsWith('/api/v1/transactions')) {
+        return new Response(JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       return new Response(null, { status: 404 });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -136,10 +178,10 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByText('Protected Area')).toBeInTheDocument();
-    expect(screen.getByText('Main')).toBeInTheDocument();
-    expect(screen.queryByText('Old')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Main').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Old', { selector: 'strong' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('Show inactive'));
-    expect(await screen.findByText('Old')).toBeInTheDocument();
+    expect(await screen.findByText('Old', { selector: 'strong' })).toBeInTheDocument();
   });
 });

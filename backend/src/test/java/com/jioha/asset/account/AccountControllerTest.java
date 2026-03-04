@@ -70,7 +70,7 @@ class AccountControllerTest {
     assertThat(items.get(0).path("id").asLong()).isEqualTo(firstOrderId);
     assertThat(items.get(1).path("id").asLong()).isEqualTo(secondOrderId);
     assertThat(items.get(2).path("id").asLong()).isEqualTo(nullOrderId);
-    assertThat(items.get(0).path("currentBalance").isNull()).isTrue();
+    assertThat(items.get(0).path("currentBalance").asLong()).isEqualTo(2000L);
   }
 
   @Test
