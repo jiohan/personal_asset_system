@@ -31,6 +31,13 @@ describe('App', () => {
         });
       }
 
+      if (url === '/api/v1/accounts') {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       return new Response(null, { status: 404 });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -59,6 +66,13 @@ describe('App', () => {
         });
       }
 
+      if (url === '/api/v1/accounts') {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       if (url === '/api/v1/auth/logout') {
         const headers = new Headers(init?.headers);
         if (headers.get('X-XSRF-TOKEN') !== 'abc') return new Response(null, { status: 403 });
@@ -74,5 +88,58 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
 
     expect(await screen.findByRole('tab', { name: 'Login' })).toBeInTheDocument();
+  });
+
+  it('hides inactive accounts by default and reveals them on toggle', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url === '/api/v1/auth/me') {
+        return new Response(JSON.stringify({ id: 1, email: 'demo@example.com' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (url === '/api/v1/accounts') {
+        return new Response(JSON.stringify({
+          items: [
+            {
+              id: 1,
+              name: 'Main',
+              type: 'CHECKING',
+              isActive: true,
+              orderIndex: 1,
+              openingBalance: 1000,
+              currentBalance: null
+            },
+            {
+              id: 2,
+              name: 'Old',
+              type: 'SAVINGS',
+              isActive: false,
+              orderIndex: null,
+              openingBalance: 500,
+              currentBalance: null
+            }
+          ]
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<App />);
+
+    expect(await screen.findByText('Protected Area')).toBeInTheDocument();
+    expect(screen.getByText('Main')).toBeInTheDocument();
+    expect(screen.queryByText('Old')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Show inactive'));
+    expect(await screen.findByText('Old')).toBeInTheDocument();
   });
 });

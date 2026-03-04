@@ -73,6 +73,14 @@ h1 {
   border: 1px solid #d1d5db;
 }
 
+.field select {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
 .btn {
   font: inherit;
   padding: 10px 12px;
@@ -100,4 +108,52 @@ h1 {
 .hint {
   margin-top: 12px;
   color: #6b7280;
+}
+
+.accounts-card {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.accounts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.account-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.account-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-grid {
+  display: grid;
+  gap: 8px;
+  border-top: 1px dashed #d1d5db;
+  padding-top: 10px;
 }
