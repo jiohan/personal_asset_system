@@ -32,5 +32,5 @@ app:
   security:
     session-cookie:
       use-http-only-cookie: true
-      use-secure-cookie: true
+      use-secure-cookie: false
       same-site: Lax
