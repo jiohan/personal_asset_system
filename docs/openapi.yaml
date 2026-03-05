@@ -208,6 +208,10 @@ paths:
     post:
       tags: [Transactions]
       summary: Create transaction
+      description: |
+        Current implementation status:
+        - INCOME/EXPENSE creation is supported.
+        - TRANSFER creation is blocked until Slice 4 and returns `409 CONFLICT`.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -254,6 +258,8 @@ paths:
       summary: Update transaction
       description: |
         MVP rule: `type` update is not allowed. To change type, delete and recreate.
+        Current implementation status:
+        - Existing TRANSFER updates are blocked until Slice 4 and return `409 CONFLICT`.
       parameters:
         - $ref: '#/components/parameters/PathId'
         - $ref: '#/components/parameters/CsrfTokenHeader'

@@ -42,14 +42,14 @@ Scope: 계좌 생성/목록/수정(isActive 포함)
 ### Slice 3. Transactions CRUD (INCOME/EXPENSE) + List Rules
 Scope: 수입/지출 생성/수정/삭제 + 목록 필터
 
-- [ ] Contract: `/transactions`, `/transactions/{id}` + query(from,to,type,needsReview,page,size,sort)
-- [ ] Contract: `/categories`, `/categories/{id}` (MVP 최소: list/create/patch)
-- [ ] DB: amount>0, 타입별 필드 상호배타, soft delete 규칙 검증
-- [ ] API: 리스트/상세/생성/수정/삭제 구현
-- [ ] API: 카테고리 list/create/patch (2단계 깊이 제한, system category 수정 금지)
-- [ ] UI: 거래 입력폼 + 목록 필터/검색 연결
-- [ ] UI: 카테고리 선택(거래 입력폼)
-- [ ] Tests: 성공/검증실패 + soft delete 제외 확인
+- [x] Contract: `/transactions`, `/transactions/{id}` + query(from,to,type,needsReview,page,size,sort)
+- [x] Contract: `/categories`, `/categories/{id}` (MVP 최소: list/create/patch)
+- [x] DB: amount>0, 타입별 필드 상호배타, soft delete 규칙 검증
+- [x] API: 리스트/상세/생성/수정/삭제 구현 (현재 INCOME/EXPENSE 중심, TRANSFER 생성/수정은 Slice 4로 이월)
+- [x] API: 카테고리 list/create/patch (2단계 깊이 제한, system category 수정 금지)
+- [x] UI: 거래 입력폼 + 목록 필터/검색 연결
+- [x] UI: 카테고리 선택(거래 입력폼)
+- [x] Tests: 성공/검증실패 + soft delete 제외 확인
 - [ ] Edge: `excludeFromReports=true`의 의미(지출 통계 제외) 보장
 
 ### Slice 4. Transfer + Report Exclusion Rule

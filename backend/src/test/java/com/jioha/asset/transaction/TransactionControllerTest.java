@@ -171,6 +171,25 @@ class TransactionControllerTest {
   }
 
   @Test
+  void create_transfer_beforeSlice4_returnsConflict() throws Exception {
+    SessionContext me = signupAndLogin();
+
+    mvc.perform(post("/api/v1/transactions")
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "txDate", "2026-03-01",
+                "type", "TRANSFER",
+                "amount", 1000,
+                "fromAccountId", 1,
+                "toAccountId", 2
+            ))))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+  }
+
+  @Test
   void get_othersTransaction_returnsNotFound() throws Exception {
     SessionContext owner = signupAndLogin();
     SessionContext other = signupAndLogin();

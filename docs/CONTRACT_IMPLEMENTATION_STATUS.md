@@ -23,6 +23,10 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 - [x] PATCH /transactions/{id}
 - [x] DELETE /transactions/{id}
 
+Note:
+- Current backend behavior supports INCOME/EXPENSE flow for transaction create/update.
+- TRANSFER create/update is intentionally blocked until Slice 4 (`409 CONFLICT`).
+
 - [ ] GET /reports/summary
 - [ ] GET /reports/transfers
 
