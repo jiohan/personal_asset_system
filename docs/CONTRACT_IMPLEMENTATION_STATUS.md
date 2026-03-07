@@ -23,8 +23,11 @@ CI enforces contract-first via `bash scripts/contract/spec_impl_drift.sh`.
 - [x] PATCH /transactions/{id}
 - [x] DELETE /transactions/{id}
 
-- [ ] GET /reports/summary
-- [ ] GET /reports/transfers
+Note:
+- Current backend behavior supports INCOME/EXPENSE/TRANSFER flow for transaction create/update.
+
+- [x] GET /reports/summary
+- [x] GET /reports/transfers
 
 - [ ] POST /imports/csv
 

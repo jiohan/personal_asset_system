@@ -1,6 +1,6 @@
 WITH ensured_user AS (
-  INSERT INTO users (email, email_normalized, password_hash)
-  VALUES ('demo@example.com', 'demo@example.com', '{noop}demo')
+INSERT INTO users (email, email_normalized, password_hash)
+  VALUES ('demo@example.com', 'demo@example.com', '$2b$12$whNF72vNMfHepUf3lwOXbeyZR2mguQQVNXqNIOQ5AQx6zJJ/.z3Ze')
   ON CONFLICT (email_normalized) DO UPDATE
     SET email = EXCLUDED.email
   RETURNING id

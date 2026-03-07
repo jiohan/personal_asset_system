@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.hamcrest.Matchers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -82,6 +83,18 @@ class TransactionControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.amount").value(15000))
         .andExpect(jsonPath("$.description").value("Late lunch"));
+
+    mvc.perform(patch("/api/v1/transactions/{id}", txId)
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "clearCategory", true,
+                "needsReview", false
+            ))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.categoryId").value(Matchers.nullValue()))
+        .andExpect(jsonPath("$.needsReview").value(true));
 
     mvc.perform(delete("/api/v1/transactions/{id}", txId)
             .cookie(me.sessionCookie, me.xsrfCookie)
@@ -168,6 +181,115 @@ class TransactionControllerTest {
             ))))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+  }
+
+  @Test
+  void create_transfer_beforeSlice4_returnsConflict() throws Exception {
+    SessionContext me = signupAndLogin();
+
+    long fromId = createAccount(me, "From", "CHECKING", true);
+    long toId = createAccount(me, "To", "SAVINGS", true);
+
+    long txId = createTransaction(me, Map.of(
+        "txDate", "2026-03-01",
+        "type", "TRANSFER",
+        "amount", 1000,
+        "fromAccountId", fromId,
+        "toAccountId", toId,
+        "description", "Move funds"
+    ));
+
+    mvc.perform(get("/api/v1/transactions/{id}", txId)
+            .cookie(me.sessionCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.type").value("TRANSFER"))
+        .andExpect(jsonPath("$.accountId").value(Matchers.nullValue()))
+        .andExpect(jsonPath("$.fromAccountId").value(fromId))
+        .andExpect(jsonPath("$.toAccountId").value(toId))
+        .andExpect(jsonPath("$.needsReview").value(false))
+        .andExpect(jsonPath("$.excludeFromReports").value(false));
+
+    mvc.perform(get("/api/v1/accounts")
+            .cookie(me.sessionCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[?(@.id==" + fromId + ")].currentBalance").value(Matchers.contains(-1000)))
+        .andExpect(jsonPath("$.items[?(@.id==" + toId + ")].currentBalance").value(Matchers.contains(1000)));
+  }
+
+  @Test
+  void create_transfer_withSameFromTo_returnsValidationError() throws Exception {
+    SessionContext me = signupAndLogin();
+    long a = createAccount(me, "Same", "CHECKING", true);
+
+    mvc.perform(post("/api/v1/transactions")
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "txDate", "2026-03-01",
+                "type", "TRANSFER",
+                "amount", 1000,
+                "fromAccountId", a,
+                "toAccountId", a
+            ))))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.error.fieldErrors[?(@.field=='toAccountId')].reason").value(Matchers.hasItem(Matchers.containsString("different"))));
+  }
+
+  @Test
+  void create_transfer_withCategory_returnsValidationError() throws Exception {
+    SessionContext me = signupAndLogin();
+    long fromId = createAccount(me, "From", "CHECKING", true);
+    long toId = createAccount(me, "To", "SAVINGS", true);
+    long categoryId = createCategory(me, "TRANSFER", "Move");
+
+    mvc.perform(post("/api/v1/transactions")
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "txDate", "2026-03-01",
+                "type", "TRANSFER",
+                "amount", 1000,
+                "fromAccountId", fromId,
+                "toAccountId", toId,
+                "categoryId", categoryId
+            ))))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.error.fieldErrors[?(@.field=='categoryId')].reason").value(Matchers.hasItem(Matchers.containsString("must be null"))));
+  }
+
+  @Test
+  void patch_transfer_amount_updates_account_balances() throws Exception {
+    SessionContext me = signupAndLogin();
+    long fromId = createAccount(me, "From", "CHECKING", true);
+    long toId = createAccount(me, "To", "SAVINGS", true);
+
+    long txId = createTransaction(me, Map.of(
+        "txDate", "2026-03-01",
+        "type", "TRANSFER",
+        "amount", 1000,
+        "fromAccountId", fromId,
+        "toAccountId", toId
+    ));
+
+    mvc.perform(patch("/api/v1/transactions/{id}", txId)
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "amount", 2000
+            ))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.amount").value(2000));
+
+    mvc.perform(get("/api/v1/accounts")
+            .cookie(me.sessionCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[?(@.id==" + fromId + ")].currentBalance").value(Matchers.contains(-2000)))
+        .andExpect(jsonPath("$.items[?(@.id==" + toId + ")].currentBalance").value(Matchers.contains(2000)));
   }
 
   @Test
