@@ -855,6 +855,12 @@ components:
           nullable: true
         description:
           type: string
+        clearCategory:
+          type: boolean
+          default: false
+          description: |
+            When true, clears categoryId (stores categoryId as null). Used to distinguish
+            between "omit categoryId" (no change) and "clear category".
         categoryId:
           type: integer
           format: int64

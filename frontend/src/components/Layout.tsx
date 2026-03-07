@@ -1,21 +1,26 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { logout } from '../api';
+import { isApiError, logout } from '../api';
 import { useState } from 'react';
 
 export default function Layout() {
     const { me, setMe } = useAuth();
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
+    const [logoutError, setLogoutError] = useState('');
 
     async function onLogout() {
         setSubmitting(true);
+        setLogoutError('');
         try {
             await logout();
             setMe(null);
             navigate('/auth', { replace: true });
         } catch (err) {
             console.error(err);
+            if (isApiError(err) && err.status !== 401) {
+                setLogoutError(err.message);
+            }
             setMe(null);
             navigate('/auth', { replace: true });
         } finally {
@@ -65,6 +70,7 @@ export default function Layout() {
                         {/* Page specific title injected by children or context if needed */}
                     </div>
                     <div className="topbar-right">
+                        {logoutError ? <span className="hint error">{logoutError}</span> : null}
                         <span className="user-email">{me?.email}</span>
                         <button className="btn-logout" onClick={onLogout} disabled={submitting}>Logout</button>
                     </div>

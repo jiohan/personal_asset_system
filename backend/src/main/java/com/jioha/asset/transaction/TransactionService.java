@@ -128,13 +128,22 @@ public class TransactionService {
       throw new ResponseStatusException(CONFLICT, "TRANSFER is available in slice4.");
     }
 
+    Long normalizedCategoryId;
+    if (request.clearCategory() != null && request.clearCategory()) {
+      normalizedCategoryId = null;
+    } else if (request.categoryId() != null) {
+      normalizedCategoryId = request.categoryId();
+    } else {
+      normalizedCategoryId = entity.getCategoryId();
+    }
+
     TransactionDraft draft = validateDraft(
         entity.getType(),
         request.amount() != null ? request.amount() : entity.getAmount(),
         request.accountId() != null ? request.accountId() : entity.getAccountId(),
         request.fromAccountId() != null ? request.fromAccountId() : entity.getFromAccountId(),
         request.toAccountId() != null ? request.toAccountId() : entity.getToAccountId(),
-        request.categoryId() != null ? request.categoryId() : entity.getCategoryId(),
+        normalizedCategoryId,
         request.needsReview() != null ? request.needsReview() : entity.isNeedsReview(),
         request.excludeFromReports() != null ? request.excludeFromReports() : entity.isExcludeFromReports());
 

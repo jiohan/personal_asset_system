@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.hamcrest.Matchers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -82,6 +83,18 @@ class TransactionControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.amount").value(15000))
         .andExpect(jsonPath("$.description").value("Late lunch"));
+
+    mvc.perform(patch("/api/v1/transactions/{id}", txId)
+            .cookie(me.sessionCookie, me.xsrfCookie)
+            .header("X-XSRF-TOKEN", me.xsrf)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of(
+                "clearCategory", true,
+                "needsReview", false
+            ))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.categoryId").value(Matchers.nullValue()))
+        .andExpect(jsonPath("$.needsReview").value(true));
 
     mvc.perform(delete("/api/v1/transactions/{id}", txId)
             .cookie(me.sessionCookie, me.xsrfCookie)

@@ -567,3 +567,120 @@ bash scripts/contract/spec_impl_drift.sh
 
 ## 10) 한 줄 원칙
 `지금 없는 백엔드 기능을 UI에서 먼저 "완성형"으로 만들지 말고, Slice3 범위를 안정적으로 분리/고도화한 뒤 Slice4~7을 순서대로 활성화한다.`
+
+---
+
+## 11) 그래프형 메인 대시보드 확장 계획(팩트체크 반영)
+
+이 섹션은 "스크린샷처럼 정보가 많은 그래프형 대시보드"를 현재 프로젝트에서 어떻게 안전하게 구현할지 정의한다.
+
+### 11.1 팩트체크 결론
+
+가능 여부를 현재 계약/구현 기준으로 구분하면 아래와 같다.
+
+| 항목 | 현재 가능 여부 | 근거 | 비고 |
+| --- | --- | --- | --- |
+| Recent Activity 리스트 | 가능 (Slice3) | `GET /transactions` 구현 완료 | 이미 현재 Dashboard에서 사용 중 |
+| Inbox 카운트/리뷰 배지 | 가능 (Slice3) | `needsReview` 필터 지원 | 이미 구현됨 |
+| TRANSFER 생성/수정 | 불가 (Slice4 전) | 현재 `409 CONFLICT` | Slice4 완료 전 UI 활성화 금지 |
+| 공식 요약 카드(totalIncome/totalExpense/netSaving/transferVolume) | 불가 (Slice5 전) | `/reports/summary` 미구현 | Slice5에서 활성화 |
+| 이체 리포트(계좌쌍별) | 불가 (Slice5 전) | `/reports/transfers` 미구현 | Slice5에서 활성화 |
+| CSV/Backup 연동 위젯 | 불가 (Slice6/7 전) | 엔드포인트 미구현 | placeholder 유지 |
+| "월 달력(일별 입출금)" 뷰 | 계약 미정(추가 필요) | 현재 OpenAPI에 전용 일별 집계 엔드포인트 없음 | Slice5 이후 확장 항목 |
+
+정리:
+- "그래프가 많은 대시보드" 자체는 가능하다.
+- 다만 데이터 소스는 slice 단계별로 열어야 하며, Slice5 전에는 공식 집계 그래프를 placeholder로 유지해야 한다.
+
+### 11.2 목표 대시보드 구성(위젯 맵)
+
+아래 위젯 조합을 목표로 한다.
+
+| 위젯 | 데이터 소스 | 시작 Slice | 실패 시 처리 |
+| --- | --- | --- | --- |
+| KPI 카드 4종 (Income/Expense/Net/Transfer) | `GET /reports/summary` | Slice5 | 카드별 skeleton + "준비중" 배지 |
+| Inbox 카드 | `GET /transactions?needsReview=true&page=0&size=1` | Slice3 | 0건 처리 |
+| Recent Activity 테이블 | `GET /transactions?page=0&size=10&sort=txDate,desc` | Slice3 | empty-state |
+| Transfer Pair 차트/표 | `GET /reports/transfers` | Slice5 | 숨김 또는 placeholder |
+| Expense Top-N 바차트 | Slice5 확장(계약 추가 또는 백엔드 계산 API) | Slice5+ | placeholder |
+| 월간 추이 라인/바 차트 | Slice5 확장(일별/월별 집계 API 필요) | Slice5+ | placeholder |
+| 달력(일별 입출금) | Slice5 확장(전용 API 필요) | Slice5+ | fallback: 거래 리스트 링크 |
+
+### 11.3 슬라이스 연동 순서(자연스러운 진행)
+
+1. Slice4 완료
+- 목표: `TRANSFER` 입력/조회 정상화
+- 대시보드 영향: 내부이동 데이터가 생성되기 시작(아직 공식 그래프는 안 붙임)
+
+2. Slice5 1차(기존 계약 범위)
+- 목표: `/reports/summary`, `/reports/transfers` 구현 + 연결
+- 대시보드 영향: KPI 카드 + Transfer 리포트 위젯 활성화 가능
+
+3. Slice5 2차(확장 계약)
+- 목표: 그래프/달력에 필요한 집계 API 추가
+- 예시: 일별 현금흐름, 카테고리 Top-N, 계좌 잔액 추이
+
+4. Slice6/7
+- 목표: CSV/Backup 위젯 활성화
+- 대시보드 영향: 데이터 품질/복원 상태 위젯 추가 가능
+
+### 11.4 달력형 뷰 요구사항 대응(추가 계약 항목)
+
+"3월 며칠에 얼마 들어오고/나갔는지"를 안정적으로 그리려면, 거래 목록을 프론트에서 억지 집계하지 말고 전용 API를 추가한다.
+
+권장 추가 계약(초안):
+- `GET /api/v1/reports/daily-cashflow?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- 응답 예시:
+```json
+{
+  "from": "2026-03-01",
+  "to": "2026-04-01",
+  "items": [
+    { "date": "2026-03-01", "income": 500000, "expense": 120000, "net": 380000 },
+    { "date": "2026-03-02", "income": 0, "expense": 45000, "net": -45000 }
+  ]
+}
+```
+
+규칙:
+- `TRANSFER`는 일별 현금흐름(income/expense/net)에서 제외
+- `excludeFromReports=true`인 EXPENSE는 expense 집계에서 제외
+- `needsReview=true` 또는 `categoryId=null` 항목은 보조 배지/카운트로 분리(옵션)
+
+### 11.5 백엔드-프론트 연결 오류 방지 체크리스트
+
+대시보드 다중 위젯 연결 시 아래를 지키면 회귀를 크게 줄일 수 있다.
+
+1. API 경계
+- 모든 호출은 `frontend/src/api.ts`를 통해서만 수행
+- 위젯 컴포넌트에서 직접 fetch 금지
+
+2. 요청 파라미터
+- `from/to`는 반드시 명시적으로 전달
+- 날짜는 `LocalDate` 기준으로 처리(브라우저 timezone 변환 금지)
+
+3. 위젯 독립 실패 처리
+- `Promise.allSettled`로 위젯별 실패 격리
+- 한 위젯 실패가 전체 Dashboard blank를 만들지 않게 처리
+
+4. Slice 가드
+- Slice5 전에는 `/reports/*` 호출 자체를 하지 않거나, feature flag로 막음
+- `transfers/reports/imports/backups` placeholder 정책 유지
+
+5. 숫자 신뢰도 라벨링
+- 공식 집계 API 전에는 "최근 N건 기준" 라벨 강제
+- 공식 집계 API 이후에만 "월 합계/총계" 명칭 사용
+
+6. 테스트
+- 대시보드 위젯별 로딩/에러/empty 상태 테스트 추가
+- `reports` 미구현 상태(404/501 가정)에서 UI가 깨지지 않는 회귀 테스트 추가
+
+### 11.6 Dashboard 전용 DoD(확장판)
+
+그래프형 대시보드 작업은 아래를 만족해야 완료로 본다.
+
+- 데이터 출처가 위젯마다 문서화되어 있음(API 또는 placeholder)
+- Slice 단계에 맞지 않는 위젯은 숨김/준비중 처리됨
+- totalIncome/totalExpense/netSaving/transferVolume은 Slice5 이후에만 노출
+- 위젯 단위 에러 핸들링이 동작하고 전체 레이아웃이 유지됨
+- 프론트 테스트 + 빌드 + 백엔드 테스트 + contract gate 통과

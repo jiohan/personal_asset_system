@@ -1,11 +1,13 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
-import { listCategories, createCategory, patchCategory, type CategoryResponse, type TransactionType } from '../api';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { createCategory, isApiError, listCategories, patchCategory, type CategoryResponse, type TransactionType } from '../api';
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<CategoryResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
+    const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
 
     const [activeTab, setActiveTab] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
     const [categoryName, setCategoryName] = useState('');
@@ -25,19 +27,45 @@ export default function CategoriesPage() {
     };
 
     useEffect(() => {
-        void loadCategories();
+        let active = true;
+        async function initLoad() {
+            setLoading(true);
+            try {
+                const res = await listCategories();
+                if (!active) return;
+                setCategories(res.items);
+            } catch (err: unknown) {
+                if (!active) return;
+                setError(err instanceof Error ? err.message : 'Failed to load categories.');
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+
+        void initLoad();
+        return () => { active = false; };
     }, []);
 
     const handleCreateCategory = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
+        setCreateFieldErrors({});
         setSubmitting(true);
         try {
             await createCategory({ name: categoryName, type: activeTab, isActive: true });
             await loadCategories();
             setCategoryName('');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Creation failed.');
+            if (isApiError(err) && err.fieldErrors) {
+                const next: Record<string, string> = {};
+                for (const fe of err.fieldErrors) {
+                    if (!next[fe.field]) next[fe.field] = fe.reason;
+                }
+                setCreateFieldErrors(next);
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Creation failed.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -45,13 +73,24 @@ export default function CategoriesPage() {
 
     const handleSaveEdit = async (id: number) => {
         setError('');
+        setEditFieldErrors({});
         setSubmitting(true);
         try {
             await patchCategory(id, { name: editName });
             await loadCategories();
             setEditingId(null);
+            setEditName('');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Update failed.');
+            if (isApiError(err) && err.fieldErrors) {
+                const next: Record<string, string> = {};
+                for (const fe of err.fieldErrors) {
+                    if (!next[fe.field]) next[fe.field] = fe.reason;
+                }
+                setEditFieldErrors(next);
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Update failed.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -60,6 +99,7 @@ export default function CategoriesPage() {
     const startEdit = (cat: CategoryResponse) => {
         setEditingId(cat.id);
         setEditName(cat.name);
+        setEditFieldErrors({});
     };
 
     const visibleCategories = useMemo(() => categories.filter(c => c.type === activeTab), [categories, activeTab]);
@@ -97,6 +137,7 @@ export default function CategoriesPage() {
                             required
                             maxLength={100}
                         />
+                        {createFieldErrors.name ? <span className="hint error">{createFieldErrors.name}</span> : null}
                         <button className="btn btn-primary" type="submit" disabled={submitting}>Add</button>
                     </form>
 
@@ -109,6 +150,7 @@ export default function CategoriesPage() {
                                     {editingId === cat.id ? (
                                         <form className="inline-edit-form fully-inline" onSubmit={(e) => { e.preventDefault(); void handleSaveEdit(cat.id); }}>
                                             <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} required maxLength={100} />
+                                            {editFieldErrors.name ? <span className="hint error">{editFieldErrors.name}</span> : null}
                                             <button className="btn btn-primary btn-sm" type="submit" disabled={submitting}>💾</button>
                                             <button className="btn btn-sm" type="button" onClick={() => setEditingId(null)}>✕</button>
                                         </form>
@@ -116,7 +158,7 @@ export default function CategoriesPage() {
                                         <>
                                             <span className="item-name">{cat.name}</span>
                                             <div className="item-actions">
-                                                <button className="btn-icon" onClick={() => startEdit(cat)} disabled={!cat.isActive}>✎</button>
+                                                <button className="btn-icon" onClick={() => startEdit(cat)} disabled={submitting}>✎</button>
                                             </div>
                                         </>
                                     )}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { listAccounts, listTransactions, type AccountResponse, type TransactionResponse } from '../api';
 import { NavLink } from 'react-router-dom';
 
@@ -16,7 +16,7 @@ export default function DashboardPage() {
             try {
                 const [accRes, txsRes] = await Promise.all([
                     listAccounts(),
-                    listTransactions({ page: 0, size: 10, sort: 'txDate,desc' }) // Just recent 10 for dashboard
+                    listTransactions({ page: 0, size: 10, sort: 'txDate,desc' })
                 ]);
 
                 if (!active) return;
@@ -52,10 +52,11 @@ export default function DashboardPage() {
 
     const activeAccounts = useMemo(() => accounts.filter(a => a.isActive), [accounts]);
 
-    // Calculate total balance across active accounts (just for display purposes, maybe not if strict about "no calculated totals")
-    // The guide says: "Slice3 단계에서는 `/reports/*`가 없으므로, "기간 전체 합계"를 UI에서 보여주지 않는다.
-    // 대시보드는 "최근 거래", "계좌 수", "활성 계좌 수", "인박스(needsReview)" 같은 안전한 범위의 지표 위주로 구성한다."
-    // So we will just show active accounts count.
+    const accountNameById = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const a of accounts) map.set(a.id, a.name);
+        return map;
+    }, [accounts]);
 
     return (
         <div className="page-container dashboard-page">
@@ -89,6 +90,7 @@ export default function DashboardPage() {
                             <tr>
                                 <th>Date</th>
                                 <th>Description</th>
+                                <th>Account</th>
                                 <th>Amount</th>
                                 <th>Status</th>
                             </tr>
@@ -98,8 +100,9 @@ export default function DashboardPage() {
                                 <tr key={tx.id}>
                                     <td>{tx.txDate}</td>
                                     <td>{tx.description || '(no description)'} <span className="hint block">{tx.type}</span></td>
+                                    <td>{tx.accountId ? (accountNameById.get(tx.accountId) ?? `#${tx.accountId}`) : '-'}</td>
                                     <td className={tx.type === 'INCOME' ? 'text-cyan' : ''}>
-                                        {tx.type === 'INCOME' ? '+' : '-'}{tx.amount.toLocaleString()} KRW
+                                        {(tx.type === 'INCOME' ? '+' : (tx.type === 'EXPENSE' ? '-' : '↔'))}{tx.amount.toLocaleString('ko-KR')} KRW
                                     </td>
                                     <td>
                                         {tx.needsReview ? (

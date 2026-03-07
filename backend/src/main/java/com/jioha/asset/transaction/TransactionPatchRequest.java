@@ -12,6 +12,7 @@ public record TransactionPatchRequest(
     Long fromAccountId,
     Long toAccountId,
     @Size(max = 255) String description,
+    Boolean clearCategory,
     Long categoryId,
     List<@Size(max = 30) String> tagNames,
     Boolean needsReview,

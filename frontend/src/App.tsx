@@ -29,6 +29,8 @@ export default function App() {
               <Route path="/reports" element={<PlaceholderPage title="Reports" slice={5} />} />
               <Route path="/imports" element={<PlaceholderPage title="Imports" slice={6} />} />
               <Route path="/backups" element={<PlaceholderPage title="Backups" slice={7} />} />
+
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Route>
         </Routes>

@@ -1,10 +1,30 @@
+export type ApiFieldError = { field: string; reason: string };
+
 export type ApiErrorResponse = {
   error: {
     code: string;
     message: string;
-    fieldErrors?: { field: string; reason: string }[];
+    fieldErrors?: ApiFieldError[] | null;
   };
 };
+
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  fieldErrors?: ApiFieldError[];
+
+  constructor(args: { status: number; message: string; code?: string; fieldErrors?: ApiFieldError[] }) {
+    super(args.message);
+    this.name = 'ApiError';
+    this.status = args.status;
+    this.code = args.code;
+    this.fieldErrors = args.fieldErrors;
+  }
+}
+
+export function isApiError(err: unknown): err is ApiError {
+  return err instanceof ApiError;
+}
 
 export type AuthMeResponse = {
   id: number;
@@ -85,7 +105,7 @@ export type TransactionCreateRequest = {
   fromAccountId?: number;
   toAccountId?: number;
   description?: string;
-  categoryId?: number;
+  categoryId?: number | null;
   tagNames?: string[];
   needsReview?: boolean;
   excludeFromReports?: boolean;
@@ -98,7 +118,8 @@ export type TransactionPatchRequest = {
   fromAccountId?: number;
   toAccountId?: number;
   description?: string;
-  categoryId?: number;
+  categoryId?: number | null;
+  clearCategory?: boolean;
   tagNames?: string[];
   needsReview?: boolean;
   excludeFromReports?: boolean;
@@ -172,14 +193,20 @@ async function requireOkJson<T>(res: Response): Promise<T> {
   if (res.ok) return readJson<T>(res);
 
   let message = `Request failed (${res.status}).`;
+  let code: string | undefined;
+  let fieldErrors: ApiFieldError[] | undefined;
   try {
     const body = await readJson<ApiErrorResponse>(res);
     message = body.error?.message ?? message;
+    code = body.error?.code;
+    if (body.error?.fieldErrors && Array.isArray(body.error.fieldErrors)) {
+      fieldErrors = body.error.fieldErrors;
+    }
   } catch {
     message = `Request failed (${res.status}).`;
   }
 
-  throw new Error(message);
+  throw new ApiError({ status: res.status, message, code, fieldErrors });
 }
 
 export async function getMe(): Promise<AuthMeResponse | null> {

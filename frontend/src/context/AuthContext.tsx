@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { getMe, type AuthMeResponse } from '../api';
 
 interface AuthContextType {
@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const checkSession = async () => {
+        setLoading(true);
         try {
             const current = await getMe();
             setMeState(current);
@@ -26,7 +27,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        void checkSession();
+        let active = true;
+        setLoading(true);
+        getMe().then((current) => {
+            if (!active) return;
+            setMeState(current);
+        }).catch(() => {
+            if (!active) return;
+            setMeState(null);
+        }).finally(() => {
+            if (active) setLoading(false);
+        });
+        return () => { active = false; };
     }, []);
 
     return (

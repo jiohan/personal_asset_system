@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
-import { listAccounts, createAccount, patchAccount, type AccountResponse, type AccountType } from '../api';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { createAccount, isApiError, listAccounts, patchAccount, type AccountResponse, type AccountType } from '../api';
 
 function parseOptionalInteger(input: string, fieldName: string): number | undefined {
     const v = input.trim();
@@ -21,14 +21,14 @@ export default function AccountsPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [createFieldErrors, setCreateFieldErrors] = useState<Record<string, string>>({});
+    const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
 
-    // Create form state
     const [isCreating, setIsCreating] = useState(false);
     const [createName, setCreateName] = useState('');
     const [createType, setCreateType] = useState<AccountType>('CHECKING');
     const [createOpeningBalance, setCreateOpeningBalance] = useState('0');
 
-    // Edit state
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
 
@@ -45,12 +45,29 @@ export default function AccountsPage() {
     };
 
     useEffect(() => {
-        void loadAccounts();
+        let active = true;
+        async function initLoad() {
+            setLoading(true);
+            try {
+                const res = await listAccounts();
+                if (!active) return;
+                setAccounts(res.items);
+            } catch (err: unknown) {
+                if (!active) return;
+                setError(err instanceof Error ? err.message : 'Failed to load accounts.');
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+
+        void initLoad();
+        return () => { active = false; };
     }, []);
 
     const handleCreateAccount = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
+        setCreateFieldErrors({});
         setSubmitting(true);
         try {
             const openingBalance = parseNonNegativeInteger(createOpeningBalance, 'Opening balance');
@@ -60,7 +77,16 @@ export default function AccountsPage() {
             setCreateOpeningBalance('0');
             setIsCreating(false);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Creation failed.');
+            if (isApiError(err) && err.fieldErrors) {
+                const next: Record<string, string> = {};
+                for (const fe of err.fieldErrors) {
+                    if (!next[fe.field]) next[fe.field] = fe.reason;
+                }
+                setCreateFieldErrors(next);
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Creation failed.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -81,13 +107,23 @@ export default function AccountsPage() {
 
     const handleSaveEdit = async (id: number) => {
         setError('');
+        setEditFieldErrors({});
         setSubmitting(true);
         try {
             await patchAccount(id, { name: editName });
             await loadAccounts();
             setEditingId(null);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Update failed.');
+            if (isApiError(err) && err.fieldErrors) {
+                const next: Record<string, string> = {};
+                for (const fe of err.fieldErrors) {
+                    if (!next[fe.field]) next[fe.field] = fe.reason;
+                }
+                setEditFieldErrors(next);
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Update failed.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -96,9 +132,9 @@ export default function AccountsPage() {
     const startEdit = (acc: AccountResponse) => {
         setEditingId(acc.id);
         setEditName(acc.name);
+        setEditFieldErrors({});
     };
 
-    // Group accounts by type roughly or just display them.
     const checkingAccounts = useMemo(() => accounts.filter(a => a.type === 'CHECKING'), [accounts]);
     const savingsAccounts = useMemo(() => accounts.filter(a => a.type === 'SAVINGS'), [accounts]);
     const cashAccounts = useMemo(() => accounts.filter(a => a.type === 'CASH'), [accounts]);
@@ -115,7 +151,8 @@ export default function AccountsPage() {
                             <div className="card-header">
                                 {editingId === acc.id ? (
                                     <form onSubmit={(e) => { e.preventDefault(); void handleSaveEdit(acc.id); }} className="inline-edit-form">
-                                        <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                                        <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} required maxLength={100} />
+                                        {editFieldErrors.name ? <span className="hint error">{editFieldErrors.name}</span> : null}
                                         <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>💾</button>
                                         <button type="button" className="btn btn-sm" onClick={() => setEditingId(null)}>✕</button>
                                     </form>
@@ -128,7 +165,7 @@ export default function AccountsPage() {
                             </div>
                             <div className="card-body">
                                 <span className="balance-label">Balance</span>
-                                <span className="balance-value">{(acc.currentBalance ?? 0).toLocaleString()} KRW</span>
+                                <span className="balance-value">{(acc.currentBalance ?? 0).toLocaleString('ko-KR')} KRW</span>
                             </div>
                             <div className="card-footer">
                                 <label className="toggle-switch">
@@ -159,7 +196,8 @@ export default function AccountsPage() {
                     <div className="form-row">
                         <label className="field">
                             <span>Name</span>
-                            <input value={createName} onChange={(e) => setCreateName(e.target.value)} required />
+                            <input value={createName} onChange={(e) => setCreateName(e.target.value)} required maxLength={100} />
+                            {createFieldErrors.name ? <span className="hint error">{createFieldErrors.name}</span> : null}
                         </label>
                         <label className="field">
                             <span>Type</span>
@@ -173,6 +211,7 @@ export default function AccountsPage() {
                         <label className="field">
                             <span>Opening Balance (KRW)</span>
                             <input type="number" min="0" value={createOpeningBalance} onChange={(e) => setCreateOpeningBalance(e.target.value)} />
+                            {createFieldErrors.openingBalance ? <span className="hint error">{createFieldErrors.openingBalance}</span> : null}
                         </label>
                         <div className="form-actions align-bottom">
                             <button type="submit" className="btn btn-primary" disabled={submitting}>CREATE</button>

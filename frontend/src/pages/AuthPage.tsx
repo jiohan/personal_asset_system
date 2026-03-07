@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { login, signup } from '../api';
+import { isApiError, login, signup } from '../api';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 export default function AuthPage() {
@@ -10,6 +10,7 @@ export default function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
 
     if (me) {
@@ -19,13 +20,23 @@ export default function AuthPage() {
     async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setError('');
+        setFieldErrors({});
         setSubmitting(true);
         try {
             const res = tab === 'login' ? await login({ email, password }) : await signup({ email, password });
             setMe(res);
             navigate('/dashboard', { replace: true });
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Request failed.');
+            if (isApiError(err) && err.fieldErrors) {
+                const next: Record<string, string> = {};
+                for (const fe of err.fieldErrors) {
+                    if (!next[fe.field]) next[fe.field] = fe.reason;
+                }
+                setFieldErrors(next);
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Request failed.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -42,7 +53,7 @@ export default function AuthPage() {
                     <button
                         type="button"
                         className={tab === 'login' ? 'tab tab-active' : 'tab'}
-                        onClick={() => { setTab('login'); setError(''); }}
+                        onClick={() => { setTab('login'); setError(''); setFieldErrors({}); }}
                         role="tab"
                         aria-selected={tab === 'login'}
                     >
@@ -51,7 +62,7 @@ export default function AuthPage() {
                     <button
                         type="button"
                         className={tab === 'signup' ? 'tab tab-active' : 'tab'}
-                        onClick={() => { setTab('signup'); setError(''); }}
+                        onClick={() => { setTab('signup'); setError(''); setFieldErrors({}); }}
                         role="tab"
                         aria-selected={tab === 'signup'}
                     >
@@ -69,6 +80,7 @@ export default function AuthPage() {
                             required
                             autoComplete="email"
                         />
+                        {fieldErrors.email ? <span className="hint error">{fieldErrors.email}</span> : null}
                     </label>
                     <label className="field">
                         <span>Password</span>
@@ -80,6 +92,7 @@ export default function AuthPage() {
                             autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                             minLength={tab === 'signup' ? 8 : 1}
                         />
+                        {fieldErrors.password ? <span className="hint error">{fieldErrors.password}</span> : null}
                     </label>
                     <button className="btn btn-primary" type="submit" disabled={submitting}>
                         {submitting ? 'Working...' : (tab === 'login' ? 'Sign in' : 'Create account')}
