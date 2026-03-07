@@ -77,9 +77,6 @@ public class TransactionService {
   @Transactional
   public TransactionResponse create(TransactionCreateRequest request) {
     long userId = currentUserId();
-    if (request.type() == TransactionType.TRANSFER) {
-      throw new ResponseStatusException(CONFLICT, "TRANSFER is available in slice4.");
-    }
 
     TransactionDraft draft = validateDraft(
         request.type(),
@@ -124,8 +121,15 @@ public class TransactionService {
     TransactionEntity entity = transactionRepository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)
         .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Transaction not found."));
 
+    Long normalizedCategoryId;
     if (entity.getType() == TransactionType.TRANSFER) {
-      throw new ResponseStatusException(CONFLICT, "TRANSFER is available in slice4.");
+      normalizedCategoryId = null;
+    } else if (request.clearCategory() != null && request.clearCategory()) {
+      normalizedCategoryId = null;
+    } else if (request.categoryId() != null) {
+      normalizedCategoryId = request.categoryId();
+    } else {
+      normalizedCategoryId = entity.getCategoryId();
     }
 
     TransactionDraft draft = validateDraft(
@@ -134,7 +138,7 @@ public class TransactionService {
         request.accountId() != null ? request.accountId() : entity.getAccountId(),
         request.fromAccountId() != null ? request.fromAccountId() : entity.getFromAccountId(),
         request.toAccountId() != null ? request.toAccountId() : entity.getToAccountId(),
-        request.categoryId() != null ? request.categoryId() : entity.getCategoryId(),
+        normalizedCategoryId,
         request.needsReview() != null ? request.needsReview() : entity.isNeedsReview(),
         request.excludeFromReports() != null ? request.excludeFromReports() : entity.isExcludeFromReports());
 
@@ -172,6 +176,9 @@ public class TransactionService {
   private void verifyAccountAndCategoryPolicy(long userId, TransactionDraft draft) {
     if (draft.type() == TransactionType.INCOME || draft.type() == TransactionType.EXPENSE) {
       ensureActiveAccountOwnership(userId, draft.accountId(), "accountId");
+    } else if (draft.type() == TransactionType.TRANSFER) {
+      ensureActiveAccountOwnership(userId, draft.fromAccountId(), "fromAccountId");
+      ensureActiveAccountOwnership(userId, draft.toAccountId(), "toAccountId");
     }
     if (draft.categoryId() != null) {
         CategoryEntity category = categoryRepository.findAccessibleById(draft.categoryId(), userId)
@@ -209,21 +216,53 @@ public class TransactionService {
       Long categoryId,
       boolean needsReview,
       boolean excludeFromReports) {
-    try {
-      return TransactionRuleValidator.sanitizeAndValidate(new TransactionDraft(
-          type,
-          amount,
-          accountId,
-          fromAccountId,
-          toAccountId,
-          categoryId,
-          needsReview,
-          excludeFromReports));
-    } catch (IllegalArgumentException e) {
-      throw new RequestValidationException(
-          "Invalid request.",
-          List.of(new FieldError("transaction", e.getMessage())));
+    List<FieldError> errors = new ArrayList<>();
+
+    if (type == null) {
+      errors.add(new FieldError("type", "is required"));
     }
+
+    if (type == TransactionType.TRANSFER) {
+      if (accountId != null) {
+        errors.add(new FieldError("accountId", "must be null for TRANSFER"));
+      }
+      if (categoryId != null) {
+        errors.add(new FieldError("categoryId", "must be null for TRANSFER"));
+      }
+      if (fromAccountId == null) {
+        errors.add(new FieldError("fromAccountId", "is required for TRANSFER"));
+      }
+      if (toAccountId == null) {
+        errors.add(new FieldError("toAccountId", "is required for TRANSFER"));
+      }
+      if (fromAccountId != null && toAccountId != null && fromAccountId.equals(toAccountId)) {
+        errors.add(new FieldError("toAccountId", "must be different from fromAccountId"));
+      }
+    } else if (type == TransactionType.INCOME || type == TransactionType.EXPENSE) {
+      if (accountId == null) {
+        errors.add(new FieldError("accountId", "is required for INCOME/EXPENSE"));
+      }
+      if (fromAccountId != null) {
+        errors.add(new FieldError("fromAccountId", "must be null for INCOME/EXPENSE"));
+      }
+      if (toAccountId != null) {
+        errors.add(new FieldError("toAccountId", "must be null for INCOME/EXPENSE"));
+      }
+    }
+
+    if (!errors.isEmpty()) {
+      throw new RequestValidationException("Invalid request.", errors);
+    }
+
+    return TransactionRuleValidator.sanitizeAndValidate(new TransactionDraft(
+        type,
+        amount,
+        accountId,
+        fromAccountId,
+        toAccountId,
+        categoryId,
+        needsReview,
+        excludeFromReports));
   }
 
   private String normalizeDescription(String description) {

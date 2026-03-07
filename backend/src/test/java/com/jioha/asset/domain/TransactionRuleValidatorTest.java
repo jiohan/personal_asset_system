@@ -37,7 +37,7 @@ class TransactionRuleValidatorTest {
         null,
         1L,
         1L,
-        10L,
+        null,
         false,
         false
     );
@@ -69,7 +69,7 @@ class TransactionRuleValidatorTest {
   }
 
   @Test
-  void category_null_forces_needs_review_true() {
+  void category_null_forces_needs_review_true_for_incomeExpense() {
     TransactionDraft input = new TransactionDraft(
         TransactionType.EXPENSE,
         20_000L,
@@ -84,5 +84,23 @@ class TransactionRuleValidatorTest {
     TransactionDraft normalized = TransactionRuleValidator.sanitizeAndValidate(input);
 
     assertEquals(true, normalized.needsReview());
+  }
+
+  @Test
+  void transfer_does_not_force_needs_review_when_category_is_null() {
+    TransactionDraft input = new TransactionDraft(
+        TransactionType.TRANSFER,
+        20_000L,
+        null,
+        1L,
+        2L,
+        null,
+        false,
+        false
+    );
+
+    TransactionDraft normalized = TransactionRuleValidator.sanitizeAndValidate(input);
+
+    assertEquals(false, normalized.needsReview());
   }
 }
