@@ -7,7 +7,10 @@ import TransactionsPage from './TransactionsPage';
 vi.mock('../api', () => {
   return {
     listTransactions: vi.fn(async () => ({ items: [], page: 0, size: 50, totalElements: 0 })),
-    listAccounts: vi.fn(async () => ({ items: [{ id: 1, name: 'Main', type: 'CHECKING', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 }] })),
+    listAccounts: vi.fn(async () => ({ items: [
+      { id: 1, name: 'Main', type: 'CHECKING', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 },
+      { id: 2, name: 'Savings', type: 'SAVINGS', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 }
+    ] })),
     listCategories: vi.fn(async () => ({ items: [{ id: 10, type: 'EXPENSE', name: 'Food', parentId: null, isActive: true, orderIndex: null }] })),
      createCategory: vi.fn(async () => ({ id: 11, type: 'EXPENSE', name: 'Taxi', parentId: null, isActive: true, orderIndex: null })),
     createTransaction: vi.fn(async () => ({
@@ -46,7 +49,7 @@ vi.mock('../api', () => {
   };
 });
 
-import { createCategory, listCategories, listTransactions, patchTransaction } from '../api';
+import { createCategory, createTransaction, listCategories, listTransactions, patchTransaction } from '../api';
 
 function renderAt(initialEntry: string) {
   return render(
@@ -192,5 +195,33 @@ describe('TransactionsPage', () => {
 
     const categorySelect = screen.getByLabelText('Category') as HTMLSelectElement;
     await waitFor(() => expect(categorySelect.value).toBe('11'));
+  });
+
+  it('creates a transfer with from/to accounts (Slice 4)', async () => {
+    renderAt('/transactions');
+
+    fireEvent.click(screen.getByRole('button', { name: /new transaction/i }));
+    await screen.findByText('ADD NEW TRANSACTION');
+
+    fireEvent.click(screen.getByRole('button', { name: 'TRANSFER' }));
+
+    const fromSelect = screen.getByLabelText('From Account') as HTMLSelectElement;
+    const toSelect = screen.getByLabelText('To Account') as HTMLSelectElement;
+    fireEvent.change(fromSelect, { target: { value: '1' } });
+    fireEvent.change(toSelect, { target: { value: '2' } });
+
+    const amountInput = screen.getByLabelText('Amount') as HTMLInputElement;
+    fireEvent.change(amountInput, { target: { value: '1000' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'COMMIT ENTRY' }));
+
+    await waitFor(() => expect(createTransaction).toHaveBeenCalled());
+    const payload = (createTransaction as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
+    expect(payload.type).toBe('TRANSFER');
+    expect(payload.fromAccountId).toBe(1);
+    expect(payload.toAccountId).toBe(2);
+    expect('accountId' in payload).toBe(false);
+    expect('categoryId' in payload).toBe(false);
   });
 });

@@ -54,7 +54,7 @@ export default function Layout() {
                         Transfers <span className="badge">Soon</span>
                     </NavLink>
                     <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-                        Reports <span className="badge">Soon</span>
+                        Reports
                     </NavLink>
                     <NavLink to="/imports" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         Imports <span className="badge">Soon</span>

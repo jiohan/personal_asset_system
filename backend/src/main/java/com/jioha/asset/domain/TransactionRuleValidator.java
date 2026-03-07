@@ -19,7 +19,7 @@ public final class TransactionRuleValidator {
     }
 
     boolean normalizedNeedsReview = draft.needsReview();
-    if (draft.categoryId() == null) {
+    if (draft.type() != TransactionType.TRANSFER && draft.categoryId() == null) {
       normalizedNeedsReview = true;
     }
 
@@ -43,6 +43,9 @@ public final class TransactionRuleValidator {
   private static void validateTransferFields(TransactionDraft draft) {
     if (draft.accountId() != null) {
       throw new IllegalArgumentException("accountId must be null for TRANSFER");
+    }
+    if (draft.categoryId() != null) {
+      throw new IllegalArgumentException("categoryId must be null for TRANSFER");
     }
     if (draft.fromAccountId() == null || draft.toAccountId() == null) {
       throw new IllegalArgumentException("fromAccountId and toAccountId are required for TRANSFER");

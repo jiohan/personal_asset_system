@@ -1,5 +1,8 @@
 package com.jioha.asset.transaction;
 
+import com.jioha.asset.domain.TransactionSnapshot;
+import com.jioha.asset.domain.TransactionType;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +13,44 @@ import org.springframework.data.repository.query.Param;
 public interface TransactionRepository extends JpaRepository<TransactionEntity, Long>, JpaSpecificationExecutor<TransactionEntity> {
 
   Optional<TransactionEntity> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+  @Query("""
+      select new com.jioha.asset.domain.TransactionSnapshot(t.type, t.amount, t.excludeFromReports, false)
+      from TransactionEntity t
+      where t.userId = :userId
+        and t.deletedAt is null
+        and t.txDate >= :from
+        and t.txDate < :toExclusive
+      """)
+  List<TransactionSnapshot> findReportSnapshots(
+      @Param("userId") Long userId,
+      @Param("from") LocalDate from,
+      @Param("toExclusive") LocalDate toExclusive);
+
+  interface TransferPairProjection {
+    Long getFromAccountId();
+
+    Long getToAccountId();
+
+    Long getAmount();
+  }
+
+  @Query("""
+      select t.fromAccountId as fromAccountId, t.toAccountId as toAccountId, sum(t.amount) as amount
+      from TransactionEntity t
+      where t.userId = :userId
+        and t.deletedAt is null
+        and t.type = :type
+        and t.txDate >= :from
+        and t.txDate < :toExclusive
+      group by t.fromAccountId, t.toAccountId
+      order by sum(t.amount) desc
+      """)
+  List<TransferPairProjection> findTransferPairs(
+      @Param("userId") Long userId,
+      @Param("type") TransactionType type,
+      @Param("from") LocalDate from,
+      @Param("toExclusive") LocalDate toExclusive);
 
   @Query(value = """
       select a.id as accountId,

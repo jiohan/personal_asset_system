@@ -55,20 +55,20 @@ Scope: 수입/지출 생성/수정/삭제 + 목록 필터
 ### Slice 4. Transfer + Report Exclusion Rule
 Scope: TRANSFER 입력/조회 + 현금흐름 제외 규칙
 
-- [ ] Contract: TRANSFER 필수 필드(fromAccountId,toAccountId) 예시 확정
-- [ ] API: TRANSFER 생성/조회 + 필드 검증
-- [ ] UI: 이체 입력/목록 표시
-- [ ] Tests: transferVolume 반영 + totalExpense 미반영
-- [ ] Edge: from==to 금지, 타입 변경 금지 정책 확인
+- [x] Contract: TRANSFER 필수 필드(fromAccountId,toAccountId) 예시 확정
+- [x] API: TRANSFER 생성/조회 + 필드 검증
+- [x] UI: 이체 입력/목록 표시
+- [x] Tests: transferVolume 반영 + totalExpense 미반영
+- [x] Edge: from==to 금지, 타입 변경 금지 정책 확인
 
 ### Slice 5. Reports (Summary + Transfers)
 Scope: `/reports/summary`, `/reports/transfers`
 
-- [ ] Contract: 기간 규칙(from <= txDate < to), 응답 필드 확정
-- [ ] API: summary 계산/transfer 집계 구현
-- [ ] UI: 월별 요약 카드 + 이체 리포트 표시
-- [ ] Tests: 샘플 시드 기준 집계값 일치
-- [ ] Edge: excludeFromReports/soft delete/TRANSFER 규칙 동시 검증
+- [x] Contract: 기간 규칙(from <= txDate <= to), 응답 필드 확정
+- [x] API: summary 계산/transfer 집계 구현
+- [x] UI: 월별 요약 카드 + 이체 리포트 표시
+- [x] Tests: 샘플 시드 기준 집계값 일치
+- [x] Edge: excludeFromReports/soft delete/TRANSFER 규칙 동시 검증
 
 ### Slice 6. CSV Import (One-shot)
 Scope: `/imports/csv` 1-shot 검증/저장

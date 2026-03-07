@@ -9,6 +9,7 @@ import AccountsPage from './pages/AccountsPage';
 import TransactionsPage from './pages/TransactionsPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import ReportsPage from './pages/ReportsPage';
 
 export default function App() {
   return (
@@ -26,7 +27,7 @@ export default function App() {
               <Route path="/categories" element={<CategoriesPage />} />
 
               <Route path="/transfers" element={<PlaceholderPage title="Transfers" slice={4} />} />
-              <Route path="/reports" element={<PlaceholderPage title="Reports" slice={5} />} />
+              <Route path="/reports" element={<ReportsPage />} />
               <Route path="/imports" element={<PlaceholderPage title="Imports" slice={6} />} />
               <Route path="/backups" element={<PlaceholderPage title="Backups" slice={7} />} />
 

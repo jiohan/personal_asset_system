@@ -210,8 +210,9 @@ paths:
       summary: Create transaction
       description: |
         Current implementation status:
-        - INCOME/EXPENSE creation is supported.
-        - TRANSFER creation is blocked until Slice 4 and returns `409 CONFLICT`.
+        - INCOME/EXPENSE/TRANSFER creation is supported.
+        - TRANSFER requires fromAccountId/toAccountId (accountId must be null).
+        - TRANSFER does not accept categoryId (must be null).
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -258,8 +259,7 @@ paths:
       summary: Update transaction
       description: |
         MVP rule: `type` update is not allowed. To change type, delete and recreate.
-        Current implementation status:
-        - Existing TRANSFER updates are blocked until Slice 4 and return `409 CONFLICT`.
+        TRANSFER updates are supported, but category is always stored as null.
       parameters:
         - $ref: '#/components/parameters/PathId'
         - $ref: '#/components/parameters/CsrfTokenHeader'
@@ -302,6 +302,8 @@ paths:
     get:
       tags: [Reports]
       summary: Summary report
+      description: |
+        Date range is inclusive: includes transactions where `from <= txDate <= to`.
       parameters:
         - $ref: '#/components/parameters/FromDateRequired'
         - $ref: '#/components/parameters/ToDateRequired'
@@ -321,6 +323,8 @@ paths:
     get:
       tags: [Reports]
       summary: Transfer report grouped by account pair
+      description: |
+        Date range is inclusive: includes transactions where `from <= txDate <= to`.
       parameters:
         - $ref: '#/components/parameters/FromDateRequired'
         - $ref: '#/components/parameters/ToDateRequired'
@@ -825,7 +829,8 @@ components:
         - TRANSFER uses fromAccountId/toAccountId and accountId must be null.
         - INCOME/EXPENSE uses accountId and from/to must be null.
         - referenced account must be active.
-        - categoryId null => server stores needsReview=true.
+        - For INCOME/EXPENSE: categoryId null => server stores needsReview=true.
+        - For TRANSFER: categoryId must be null; needsReview is not forced by the server.
         - type != EXPENSE => server stores excludeFromReports=false.
     TransactionPatchRequest:
       type: object

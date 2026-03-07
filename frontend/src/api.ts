@@ -153,6 +153,27 @@ export type CategoryPatchRequest = {
   orderIndex?: number;
 };
 
+export type ReportSummaryResponse = {
+  from: string;
+  to: string;
+  totalIncome: number;
+  totalExpense: number;
+  netSaving: number;
+  transferVolume: number;
+};
+
+export type TransferReportItem = {
+  fromAccountId: number;
+  toAccountId: number;
+  amount: number;
+};
+
+export type TransferReportResponse = {
+  from: string;
+  to: string;
+  items: TransferReportItem[];
+};
+
 function getCookie(name: string): string | null {
   const prefix = `${encodeURIComponent(name)}=`;
   for (const part of document.cookie.split(';')) {
@@ -265,6 +286,18 @@ export async function patchAccount(id: number, req: AccountPatchRequest): Promis
     body: JSON.stringify(req)
   });
   return requireOkJson<AccountResponse>(res);
+}
+
+export async function getReportSummary(args: { from: string; to: string }): Promise<ReportSummaryResponse> {
+  const params = new URLSearchParams({ from: args.from, to: args.to });
+  const res = await apiFetch(`/reports/summary?${params.toString()}`);
+  return requireOkJson<ReportSummaryResponse>(res);
+}
+
+export async function getTransferReport(args: { from: string; to: string }): Promise<TransferReportResponse> {
+  const params = new URLSearchParams({ from: args.from, to: args.to });
+  const res = await apiFetch(`/reports/transfers?${params.toString()}`);
+  return requireOkJson<TransferReportResponse>(res);
 }
 
 export async function listTransactions(params: {

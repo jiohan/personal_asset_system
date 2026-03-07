@@ -65,7 +65,7 @@ export default function TransactionsPage() {
 
     const inboxTab = searchParams.get('tab') === 'inbox';
     const urlType = searchParams.get('type');
-    const filterType = (urlType === 'INCOME' || urlType === 'EXPENSE') ? (urlType as 'INCOME' | 'EXPENSE') : '';
+    const filterType = (urlType === 'INCOME' || urlType === 'EXPENSE' || urlType === 'TRANSFER') ? (urlType as TransactionType) : '';
     const filterQuery = searchParams.get('q') ?? '';
     const filterAccountId = searchParams.get('accountId') ?? '';
     const filterCategoryId = searchParams.get('categoryId') ?? '';
@@ -90,9 +90,11 @@ export default function TransactionsPage() {
     const [editingTxId, setEditingTxId] = useState<number | null>(null);
 
     const [txDate, setTxDate] = useState(todayISO());
-    const [txType, setTxType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
+    const [txType, setTxType] = useState<TransactionType>('EXPENSE');
     const [txAmount, setTxAmount] = useState('0');
     const [txAccountId, setTxAccountId] = useState('');
+    const [txFromAccountId, setTxFromAccountId] = useState('');
+    const [txToAccountId, setTxToAccountId] = useState('');
     const [txCategoryId, setTxCategoryId] = useState('');
     const [txDescription, setTxDescription] = useState('');
     const [txNeedsReview, setTxNeedsReview] = useState(false);
@@ -181,7 +183,7 @@ export default function TransactionsPage() {
 
     const activeAccounts = useMemo(() => accounts.filter(a => a.isActive), [accounts]);
     const selectableCategories = useMemo(() => categories.filter(c => c.type === txType && c.isActive), [categories, txType]);
-    const selectableFilterCategories = useMemo(() => categories.filter(c => c.isActive && (c.type === 'INCOME' || c.type === 'EXPENSE')), [categories]);
+    const selectableFilterCategories = useMemo(() => categories.filter(c => c.isActive), [categories]);
 
     const openNewDrawer = () => {
         setEditingTxId(null);
@@ -189,6 +191,8 @@ export default function TransactionsPage() {
         setTxAmount('0');
         setTxDescription('');
         setTxAccountId(activeAccounts.length > 0 ? String(activeAccounts[0].id) : '');
+        setTxFromAccountId(activeAccounts.length > 0 ? String(activeAccounts[0].id) : '');
+        setTxToAccountId(activeAccounts.length > 1 ? String(activeAccounts[1].id) : '');
         setTxCategoryId('');
         setTxNeedsReview(false);
         setTxExcludeFromReports(false);
@@ -200,29 +204,44 @@ export default function TransactionsPage() {
     };
 
     const openEditDrawer = (tx: TransactionResponse) => {
-        if (tx.type === 'TRANSFER') {
-            setError('Transfers are not editable yet (Slice 4).');
-            return;
-        }
         setEditingTxId(tx.id);
         setTxDate(tx.txDate);
-        if (tx.type !== 'INCOME' && tx.type !== 'EXPENSE') {
-            setError('Unsupported transaction type.');
-            return;
-        }
         setTxType(tx.type);
         setTxAmount(String(tx.amount));
         setTxDescription(tx.description);
-        setTxAccountId(String(tx.accountId));
-        setTxCategoryId(tx.categoryId ? String(tx.categoryId) : '');
-        setTxNeedsReview(tx.needsReview);
-        setTxExcludeFromReports(tx.excludeFromReports);
+        if (tx.type === 'TRANSFER') {
+            setTxAccountId('');
+            setTxFromAccountId(tx.fromAccountId != null ? String(tx.fromAccountId) : '');
+            setTxToAccountId(tx.toAccountId != null ? String(tx.toAccountId) : '');
+            setTxCategoryId('');
+            setTxNeedsReview(false);
+            setTxExcludeFromReports(false);
+        } else {
+            setTxAccountId(tx.accountId != null ? String(tx.accountId) : '');
+            setTxFromAccountId('');
+            setTxToAccountId('');
+            setTxCategoryId(tx.categoryId ? String(tx.categoryId) : '');
+            setTxNeedsReview(tx.needsReview);
+            setTxExcludeFromReports(tx.excludeFromReports);
+        }
         setFormFieldErrors({});
         setInlineCategoryOpen(false);
         setInlineCategoryName('');
         setInlineCategoryFieldErrors({});
         setDrawerOpen(true);
     };
+
+    useEffect(() => {
+        if (!drawerOpen) return;
+        if (editingTxId) return;
+        if (txType !== 'TRANSFER') return;
+        setTxCategoryId('');
+        setTxNeedsReview(false);
+        setTxExcludeFromReports(false);
+        setInlineCategoryOpen(false);
+        setInlineCategoryName('');
+        setInlineCategoryFieldErrors({});
+    }, [txType, drawerOpen, editingTxId]);
 
     const closeDrawer = () => {
         setDrawerOpen(false);
@@ -232,6 +251,22 @@ export default function TransactionsPage() {
         setInlineCategoryName('');
         setInlineCategoryFieldErrors({});
     };
+
+    useEffect(() => {
+        if (!drawerOpen) return;
+        if (editingTxId) return;
+
+        if (txType === 'TRANSFER') {
+            if (activeAccounts.length >= 2 && (txFromAccountId.trim() === '' || txToAccountId.trim() === '')) {
+                setTxFromAccountId(String(activeAccounts[0].id));
+                setTxToAccountId(String(activeAccounts[1].id));
+            }
+        } else {
+            if (activeAccounts.length >= 1 && txAccountId.trim() === '') {
+                setTxAccountId(String(activeAccounts[0].id));
+            }
+        }
+    }, [drawerOpen, editingTxId, txType, activeAccounts, txAccountId, txFromAccountId, txToAccountId]);
 
     useEffect(() => {
         if (!drawerOpen) return;
@@ -299,30 +334,65 @@ export default function TransactionsPage() {
             const amount = parsePositiveInteger(txAmount, 'Amount');
             const categoryId = parseOptionalInteger(txCategoryId, 'Category');
             const categoryIsEmpty = txCategoryId.trim() === '';
-            const normalizedNeedsReview = categoryIsEmpty ? true : txNeedsReview;
+            const normalizedNeedsReview = txType === 'TRANSFER' ? false : (categoryIsEmpty ? true : txNeedsReview);
             if (editingTxId) {
-                await patchTransaction(editingTxId, {
+                const basePayload = {
                     amount,
                     description: txDescription,
-                    clearCategory: categoryIsEmpty ? true : undefined,
-                    categoryId: categoryIsEmpty ? undefined : categoryId,
+                    ...(txType === 'TRANSFER' ? {} : {
+                        clearCategory: categoryIsEmpty ? true : undefined,
+                        categoryId: categoryIsEmpty ? undefined : categoryId
+                    }),
                     needsReview: normalizedNeedsReview,
                     excludeFromReports: txType === 'EXPENSE' ? txExcludeFromReports : false
-                });
-            } else {
-                const accountId = parseOptionalInteger(txAccountId, 'Account');
-                if (accountId == null) throw new Error('Account is required.');
+                };
 
-                await createTransaction({
-                    txDate,
-                    type: txType,
-                    amount,
-                    accountId,
-                    categoryId: categoryIsEmpty ? null : categoryId,
-                    description: txDescription,
-                    needsReview: normalizedNeedsReview,
-                    excludeFromReports: txType === 'EXPENSE' ? txExcludeFromReports : false
-                });
+                if (txType === 'TRANSFER') {
+                    const fromAccountId = parseOptionalInteger(txFromAccountId, 'From Account');
+                    const toAccountId = parseOptionalInteger(txToAccountId, 'To Account');
+                    if (fromAccountId == null || toAccountId == null) throw new Error('From and To accounts are required.');
+                    if (fromAccountId === toAccountId) throw new Error('From and To accounts must be different.');
+
+                    await patchTransaction(editingTxId, {
+                        ...basePayload,
+                        fromAccountId,
+                        toAccountId
+                    });
+                } else {
+                    await patchTransaction(editingTxId, basePayload);
+                }
+            } else {
+                if (txType === 'TRANSFER') {
+                    const fromAccountId = parseOptionalInteger(txFromAccountId, 'From Account');
+                    const toAccountId = parseOptionalInteger(txToAccountId, 'To Account');
+                    if (fromAccountId == null || toAccountId == null) throw new Error('From and To accounts are required.');
+                    if (fromAccountId === toAccountId) throw new Error('From and To accounts must be different.');
+
+                    await createTransaction({
+                        txDate,
+                        type: 'TRANSFER',
+                        amount,
+                        fromAccountId,
+                        toAccountId,
+                        description: txDescription,
+                        needsReview: false,
+                        excludeFromReports: false
+                    });
+                } else {
+                    const accountId = parseOptionalInteger(txAccountId, 'Account');
+                    if (accountId == null) throw new Error('Account is required.');
+
+                    await createTransaction({
+                        txDate,
+                        type: txType,
+                        amount,
+                        accountId,
+                        categoryId: categoryIsEmpty ? null : categoryId,
+                        description: txDescription,
+                        needsReview: normalizedNeedsReview,
+                        excludeFromReports: txType === 'EXPENSE' ? txExcludeFromReports : false
+                    });
+                }
             }
             await loadTransactions(txPage);
             closeDrawer();
@@ -379,6 +449,7 @@ export default function TransactionsPage() {
                         <option value="">Type: All</option>
                         <option value="INCOME">Income</option>
                         <option value="EXPENSE">Expense</option>
+                        <option value="TRANSFER">Transfer</option>
                     </select>
                     <select className="chip-select" value={filterAccountId} onChange={(e) => updateSearchParam('accountId', e.target.value || undefined)}>
                         <option value="">Account: All</option>
@@ -439,19 +510,23 @@ export default function TransactionsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {transactions.map(tx => {
-                                const categoryName = categories.find(c => c.id === tx.categoryId)?.name || 'Uncategorized';
-                                const amountPrefix = tx.type === 'INCOME' ? '+' : (tx.type === 'EXPENSE' ? '-' : '↔');
-                                return (
+                             {transactions.map(tx => {
+            const categoryName = categories.find(c => c.id === tx.categoryId)?.name || 'Uncategorized';
+                                 const fromName = tx.fromAccountId != null ? (accounts.find(a => a.id === tx.fromAccountId)?.name ?? 'Unknown') : undefined;
+                                 const toName = tx.toAccountId != null ? (accounts.find(a => a.id === tx.toAccountId)?.name ?? 'Unknown') : undefined;
+                                 const displayDescription = tx.type === 'TRANSFER'
+                                     ? `${fromName ?? 'Unknown'} -> ${toName ?? 'Unknown'}${tx.description ? ` (${tx.description})` : ''}`
+                                     : tx.description;
+                                 const amountPrefix = tx.type === 'INCOME' ? '+' : (tx.type === 'EXPENSE' ? '-' : '↔');
+                                 return (
                                     <tr
                                         key={tx.id}
                                         onClick={() => openEditDrawer(tx)}
-                                        className={tx.type === 'TRANSFER' ? 'clickable-row disabled-row' : 'clickable-row'}
-                                        title={tx.type === 'TRANSFER' ? 'Transfers are available in Slice 4.' : undefined}
+                                        className={'clickable-row'}
                                     >
-                                        <td>{tx.txDate}</td>
-                                        <td>{tx.description}</td>
-                                        <td><span className="pill">{categoryName}</span></td>
+                                         <td>{tx.txDate}</td>
+                                         <td>{displayDescription}</td>
+                                        <td><span className="pill">{tx.type === 'TRANSFER' ? '-' : categoryName}</span></td>
                                         <td>
                                             {tx.needsReview ? <span className="text-cyan">Pending</span> : 'Cleared'}
                                         </td>
@@ -488,6 +563,15 @@ export default function TransactionsPage() {
                                 <button type="button" className={`btn-type ${txType === 'EXPENSE' ? 'active' : ''}`} onClick={() => setTxType('EXPENSE')} disabled={!!editingTxId}>
                                     EXPENSE
                                 </button>
+                                <button
+                                    type="button"
+                                    className={`btn-type ${txType === 'TRANSFER' ? 'active' : ''}`}
+                                    onClick={() => setTxType('TRANSFER')}
+                                    disabled={!!editingTxId || activeAccounts.length < 2}
+                                    title={activeAccounts.length < 2 ? 'Create at least two active accounts to add a transfer.' : undefined}
+                                >
+                                    TRANSFER
+                                </button>
                             </div>
 
                             <label className="field">
@@ -496,83 +580,106 @@ export default function TransactionsPage() {
                                 {formFieldErrors.amount ? <span className="hint error">{formFieldErrors.amount}</span> : null}
                             </label>
 
-                            <label className="field">
-                                <span>Account</span>
-                                <select value={txAccountId} onChange={e => setTxAccountId(e.target.value)} required disabled={!!editingTxId}>
-                                    <option value="">Select Account</option>
-                                    {(editingTxId ? accounts : activeAccounts).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                </select>
-                                {activeAccounts.length === 0 && !editingTxId && <span className="hint error">You need to create an active account first.</span>}
-                                {formFieldErrors.accountId ? <span className="hint error">{formFieldErrors.accountId}</span> : null}
-                            </label>
+                            {txType !== 'TRANSFER' ? (
+                                <label className="field">
+                                    <span>Account</span>
+                                    <select value={txAccountId} onChange={e => setTxAccountId(e.target.value)} required disabled={!!editingTxId}>
+                                        <option value="">Select Account</option>
+                                        {(editingTxId ? accounts : activeAccounts).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    </select>
+                                    {activeAccounts.length === 0 && !editingTxId && <span className="hint error">You need to create an active account first.</span>}
+                                    {formFieldErrors.accountId ? <span className="hint error">{formFieldErrors.accountId}</span> : null}
+                                </label>
+                            ) : (
+                                <div className="grid-two">
+                                    <label className="field">
+                                        <span>From</span>
+                                        <select aria-label="From Account" value={txFromAccountId} onChange={e => setTxFromAccountId(e.target.value)} required>
+                                            <option value="">Select Account</option>
+                                            {activeAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                        </select>
+                                        {formFieldErrors.fromAccountId ? <span className="hint error">{formFieldErrors.fromAccountId}</span> : null}
+                                    </label>
+                                    <label className="field">
+                                        <span>To</span>
+                                        <select aria-label="To Account" value={txToAccountId} onChange={e => setTxToAccountId(e.target.value)} required>
+                                            <option value="">Select Account</option>
+                                            {activeAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                        </select>
+                                        {formFieldErrors.toAccountId ? <span className="hint error">{formFieldErrors.toAccountId}</span> : null}
+                                    </label>
+                                </div>
+                            )}
 
-                            <label className="field">
-                                <span>Category</span>
-                                <select value={txCategoryId} onChange={e => setTxCategoryId(e.target.value)}>
-                                    <option value="">Uncategorized (Needs Review)</option>
-                                    {selectableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                {formFieldErrors.categoryId ? <span className="hint error">{formFieldErrors.categoryId}</span> : null}
+                            {txType !== 'TRANSFER' ? (
+                                <label className="field">
+                                    <span>Category</span>
+                                    <select value={txCategoryId} onChange={e => setTxCategoryId(e.target.value)}>
+                                        <option value="">Uncategorized (Needs Review)</option>
+                                        {selectableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    {formFieldErrors.categoryId ? <span className="hint error">{formFieldErrors.categoryId}</span> : null}
 
-                                {!editingTxId && (
-                                    <div className="mt-1">
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm"
-                                            onClick={() => {
-                                                setInlineCategoryOpen(v => !v);
-                                                setInlineCategoryFieldErrors({});
-                                                setInlineCategoryName('');
-                                            }}
-                                            disabled={submitting || inlineCategorySubmitting}
-                                        >
-                                            {inlineCategoryOpen ? 'Cancel new category' : '+ Add new category'}
-                                        </button>
-                                    </div>
-                                )}
+                                    {!editingTxId && (
+                                        <div className="mt-1">
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm"
+                                                onClick={() => {
+                                                    setInlineCategoryOpen(v => !v);
+                                                    setInlineCategoryFieldErrors({});
+                                                    setInlineCategoryName('');
+                                                }}
+                                                disabled={submitting || inlineCategorySubmitting}
+                                            >
+                                                {inlineCategoryOpen ? 'Cancel new category' : '+ Add new category'}
+                                            </button>
+                                        </div>
+                                    )}
 
-                                {!editingTxId && inlineCategoryOpen && (
-                                    <div className="inline-add-form inline-add-compact mt-1" aria-label="Inline category create">
-                                        <input
-                                            aria-label="New category name"
-                                            placeholder={`New ${txType.toLowerCase()} category...`}
-                                            value={inlineCategoryName}
-                                            onChange={(e) => setInlineCategoryName(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    void handleCreateInlineCategory();
-                                                }
-                                            }}
-                                            maxLength={100}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="btn btn-primary btn-sm"
-                                            onClick={() => { void handleCreateInlineCategory(); }}
-                                            disabled={inlineCategorySubmitting || submitting}
-                                        >
-                                            Add
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm"
-                                            onClick={() => {
-                                                setInlineCategoryOpen(false);
-                                                setInlineCategoryName('');
-                                                setInlineCategoryFieldErrors({});
-                                            }}
-                                            disabled={inlineCategorySubmitting || submitting}
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                )}
+                                    {!editingTxId && inlineCategoryOpen && (
+                                        <div className="inline-add-form inline-add-compact mt-1" aria-label="Inline category create">
+                                            <input
+                                                aria-label="New category name"
+                                                placeholder={`New ${txType.toLowerCase()} category...`}
+                                                value={inlineCategoryName}
+                                                onChange={(e) => setInlineCategoryName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        void handleCreateInlineCategory();
+                                                    }
+                                                }}
+                                                maxLength={100}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => { void handleCreateInlineCategory(); }}
+                                                disabled={inlineCategorySubmitting || submitting}
+                                            >
+                                                Add
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm"
+                                                onClick={() => {
+                                                    setInlineCategoryOpen(false);
+                                                    setInlineCategoryName('');
+                                                    setInlineCategoryFieldErrors({});
+                                                }}
+                                                disabled={inlineCategorySubmitting || submitting}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
 
-                                {!editingTxId && inlineCategoryOpen && inlineCategoryFieldErrors.name ? (
-                                    <span className="hint error block">{inlineCategoryFieldErrors.name}</span>
-                                ) : null}
-                            </label>
+                                    {!editingTxId && inlineCategoryOpen && inlineCategoryFieldErrors.name ? (
+                                        <span className="hint error block">{inlineCategoryFieldErrors.name}</span>
+                                    ) : null}
+                                </label>
+                            ) : null}
 
                             <label className="field">
                                 <span>Date</span>
@@ -584,14 +691,18 @@ export default function TransactionsPage() {
                                 <input value={txDescription} onChange={e => setTxDescription(e.target.value)} />
                             </label>
 
-                            <label className="toggle-inline mt-2">
-                                <input type="checkbox" checked={effectiveNeedsReview} onChange={e => setTxNeedsReview(e.target.checked)} disabled={categoryIsEmpty} />
-                                Needs Review
-                            </label>
+                            {txType !== 'TRANSFER' ? (
+                                <>
+                                    <label className="toggle-inline mt-2">
+                                        <input type="checkbox" checked={effectiveNeedsReview} onChange={e => setTxNeedsReview(e.target.checked)} disabled={categoryIsEmpty} />
+                                        Needs Review
+                                    </label>
 
-                            {categoryIsEmpty && (
-                                <p className="hint">Uncategorized transactions are always stored as <strong>Needs Review</strong>.</p>
-                            )}
+                                    {categoryIsEmpty && (
+                                        <p className="hint">Uncategorized transactions are always stored as <strong>Needs Review</strong>.</p>
+                                    )}
+                                </>
+                            ) : null}
 
                             {txType === 'EXPENSE' && (
                                 <label className="toggle-inline">
@@ -601,7 +712,16 @@ export default function TransactionsPage() {
                             )}
 
                             <div className="drawer-footer">
-                                <button type="submit" className="btn btn-primary full-width" disabled={submitting || (activeAccounts.length === 0 && !editingTxId)}>COMMIT ENTRY</button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary full-width"
+                                    disabled={
+                                        submitting ||
+                                        (!editingTxId && (txType === 'TRANSFER' ? activeAccounts.length < 2 : activeAccounts.length === 0))
+                                    }
+                                >
+                                    COMMIT ENTRY
+                                </button>
                                 {editingTxId && (
                                     <button type="button" className="btn btn-danger full-width mt-1" onClick={() => handleDelete(editingTxId)} disabled={submitting}>DELETE</button>
                                 )}
