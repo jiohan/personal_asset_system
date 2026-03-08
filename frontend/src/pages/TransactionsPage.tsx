@@ -78,6 +78,58 @@ function parsePositiveInteger(input: string, fieldName: string): number {
   return n;
 }
 
+function yesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return isoLocalDate(d);
+}
+
+function formatGroupedDateLabel(isoDate: string): string {
+  const today = todayISO();
+  const yesterday = yesterdayISO();
+  if (isoDate === today) return '오늘';
+  if (isoDate === yesterday) return '어제';
+
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate;
+
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isFinite(month) || !Number.isFinite(day)) return isoDate;
+  return `${month}.${day}일`;
+}
+
+function cashflowDelta(tx: TransactionResponse): number {
+  if (tx.type === 'INCOME') return tx.amount;
+  if (tx.type === 'EXPENSE') return -tx.amount;
+  return 0;
+}
+
+function formatSignedKrw(amount: number): string {
+  if (amount === 0) return '0 KRW';
+  const prefix = amount > 0 ? '+' : '-';
+  return `${prefix}${Math.abs(amount).toLocaleString('ko-KR')} KRW`;
+}
+
+function formatKrw(amount: number): string {
+  return `${Math.abs(amount).toLocaleString('ko-KR')} KRW`;
+}
+
+function accountTypeLabel(type: AccountResponse['type']): string {
+  switch (type) {
+    case 'CHECKING':
+      return '입출금';
+    case 'SAVINGS':
+      return '예적금';
+    case 'CASH':
+      return '현금';
+    case 'INVESTMENT':
+      return '투자';
+    default:
+      return type;
+  }
+}
+
 type CategoryUsageType = 'INCOME' | 'EXPENSE';
 
 type CategoryUsageStat = {
@@ -934,6 +986,38 @@ export default function TransactionsPage() {
 
   const pendingCountdownSeconds = Math.max(0, Math.ceil(pendingDeleteCountdownMs / 1000));
 
+  const accountById = useMemo(() => {
+    const map = new Map<number, AccountResponse>();
+    for (const account of accounts) map.set(account.id, account);
+    return map;
+  }, [accounts]);
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const category of categories) map.set(category.id, category.name);
+    return map;
+  }, [categories]);
+
+  const groupedTransactions = useMemo(() => {
+    const grouped = new Map<string, TransactionResponse[]>();
+
+    for (const tx of visibleTransactions) {
+      const bucket = grouped.get(tx.txDate);
+      if (bucket) bucket.push(tx);
+      else grouped.set(tx.txDate, [tx]);
+    }
+
+    return Array.from(grouped.entries()).map(([date, items]) => ({
+      date,
+      label: formatGroupedDateLabel(date),
+      dayTotal: items.reduce((sum, tx) => sum + cashflowDelta(tx), 0),
+      dayExpense: items.reduce((sum, tx) => sum + (tx.type === 'EXPENSE' ? tx.amount : 0), 0),
+      dayIncome: items.reduce((sum, tx) => sum + (tx.type === 'INCOME' ? tx.amount : 0), 0),
+      dayTransfer: items.reduce((sum, tx) => sum + (tx.type === 'TRANSFER' ? tx.amount : 0), 0),
+      items
+    }));
+  }, [visibleTransactions]);
+
   return (
     <div className="page-container transactions-page">
       <div className="page-header">
@@ -1062,65 +1146,94 @@ export default function TransactionsPage() {
           {!loading && visibleTransactions.length === 0 ? <p className="hint">No transactions match your filters.</p> : null}
 
           {!loading && visibleTransactions.length > 0 && (
-            <table className="flat-table fully-flat">
-              <thead>
-                <tr>
-                  {inboxTab ? <th aria-label="Select">Select</th> : null}
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th className="text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleTransactions.map((tx) => {
-                  const categoryName = categories.find((c) => c.id === tx.categoryId)?.name || 'Uncategorized';
-                  const fromName = tx.fromAccountId != null ? (accounts.find((a) => a.id === tx.fromAccountId)?.name ?? 'Unknown') : undefined;
-                  const toName = tx.toAccountId != null ? (accounts.find((a) => a.id === tx.toAccountId)?.name ?? 'Unknown') : undefined;
-                  const displayDescription = tx.type === 'TRANSFER'
-                    ? `${fromName ?? 'Unknown'} -> ${toName ?? 'Unknown'}${tx.description ? ` (${tx.description})` : ''}`
-                    : tx.description;
-                  const amountPrefix = tx.type === 'INCOME' ? '+' : (tx.type === 'EXPENSE' ? '-' : '↔');
+            <div className="transaction-group-list">
+              {groupedTransactions.map((group) => (
+                <section key={group.date} className="tx-date-group">
+                  <header className="tx-date-header">
+                    <h3>{group.label}</h3>
+                    <div className="tx-date-summary">
+                      <p className={`tx-date-total ${group.dayTotal > 0 ? 'positive' : group.dayTotal < 0 ? 'negative' : 'neutral'}`}>
+                        {formatSignedKrw(group.dayTotal)}
+                      </p>
+                      <p className="tx-date-subtotal">
+                        <span className="expense">지출 -{formatKrw(group.dayExpense)}</span>
+                        <span className="income">수입 +{formatKrw(group.dayIncome)}</span>
+                        {group.dayTransfer > 0 ? <span className="transfer">이동 ↔{formatKrw(group.dayTransfer)}</span> : null}
+                      </p>
+                    </div>
+                  </header>
 
-                  return (
-                    <tr
-                      key={tx.id}
-                      onClick={() => openEditDrawer(tx)}
-                      className={`clickable-row ${editingTxId === tx.id ? 'active-row' : ''}`}
-                    >
-                      {inboxTab ? (
-                        <td onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedInboxIds.has(tx.id)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setSelectedInboxIds((prev) => {
-                                const next = new Set(prev);
-                                if (checked) next.add(tx.id);
-                                else next.delete(tx.id);
-                                return next;
-                              });
-                            }}
-                            aria-label={`Select transaction ${tx.id}`}
-                          />
-                        </td>
-                      ) : null}
-                      <td>{tx.txDate}</td>
-                      <td>{displayDescription}</td>
-                      <td><span className="pill">{tx.type === 'TRANSFER' ? '-' : categoryName}</span></td>
-                      <td>
-                        {tx.needsReview ? <span className="text-cyan">Pending</span> : 'Cleared'}
-                      </td>
-                      <td className={`text-right ${tx.type === 'INCOME' ? 'text-cyan' : ''}`}>
-                        {amountPrefix}{tx.amount.toLocaleString('ko-KR')} KRW
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  <ul className="tx-items">
+                    {group.items.map((tx) => {
+                      const account = tx.accountId != null ? accountById.get(tx.accountId) : undefined;
+                      const fromAccount = tx.fromAccountId != null ? accountById.get(tx.fromAccountId) : undefined;
+                      const toAccount = tx.toAccountId != null ? accountById.get(tx.toAccountId) : undefined;
+
+                      const categoryLabel = tx.type === 'TRANSFER'
+                        ? '이체'
+                        : (tx.categoryId != null ? (categoryNameById.get(tx.categoryId) ?? '미분류') : '미분류');
+
+                      const accountLabel = tx.type === 'TRANSFER'
+                        ? `${fromAccount?.name ?? 'Unknown'} -> ${toAccount?.name ?? 'Unknown'}`
+                        : `${account?.name ?? 'Unknown'}${account ? ` (${accountTypeLabel(account.type)})` : ''}`;
+
+                      const displayTitle = tx.description.trim() !== ''
+                        ? tx.description
+                        : (tx.type === 'TRANSFER'
+                          ? `${fromAccount?.name ?? 'Unknown'} -> ${toAccount?.name ?? 'Unknown'}`
+                          : categoryLabel);
+
+                      const amountText = tx.type === 'TRANSFER'
+                        ? `↔${tx.amount.toLocaleString('ko-KR')} KRW`
+                        : `${tx.type === 'INCOME' ? '+' : '-'}${tx.amount.toLocaleString('ko-KR')} KRW`;
+
+                      return (
+                        <li
+                          key={tx.id}
+                          onClick={() => openEditDrawer(tx)}
+                          className={`tx-item clickable-row ${editingTxId === tx.id ? 'active-row' : ''}`}
+                        >
+                          {inboxTab ? (
+                            <div
+                              className="tx-item-select"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedInboxIds.has(tx.id)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setSelectedInboxIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (checked) next.add(tx.id);
+                                    else next.delete(tx.id);
+                                    return next;
+                                  });
+                                }}
+                                aria-label={`Select transaction ${tx.id}`}
+                              />
+                            </div>
+                          ) : null}
+
+                          <div className="tx-item-main">
+                            <div className="tx-item-top">
+                              <div className="tx-item-title-line">
+                                <p className="tx-item-title">{displayTitle}</p>
+                                {tx.needsReview ? <span className="tx-review-badge">검토</span> : null}
+                              </div>
+                              <p className={`tx-item-amount ${tx.type.toLowerCase()}`}>
+                                {amountText}
+                              </p>
+                            </div>
+                            <p className="tx-item-meta">{categoryLabel} · {accountLabel}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
           )}
 
           <div className="pagination">
