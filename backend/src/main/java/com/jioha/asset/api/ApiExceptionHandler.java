@@ -15,6 +15,7 @@ import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -67,6 +68,12 @@ public class ApiExceptionHandler {
     String message = e.getBody().getDetail() != null ? e.getBody().getDetail() : status.getReasonPhrase();
     return ResponseEntity.status(status)
         .body(new ApiErrorResponse(new ApiError(code, message, null)));
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ApiErrorResponse> handleNoResourceFound(NoResourceFoundException e) {
+    return ResponseEntity.status(404)
+        .body(new ApiErrorResponse(new ApiError("NOT_FOUND", "Not found.", null)));
   }
 
   @ExceptionHandler(Exception.class)
