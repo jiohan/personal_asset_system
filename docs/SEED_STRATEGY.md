@@ -36,3 +36,5 @@
 ## 리포트 검증 포인트
 - CHECKING -> INVESTMENT 300000 TRANSFER는 totalExpense에 포함되지 않아야 한다.
 - excludeFromReports=true EXPENSE는 totalExpense에서 제외되어야 한다.
+- TRANSFER는 계좌 currentBalance 계산에는 반영되어야 한다.
+- categoryId가 비어 있는 거래 seed는 inbox(needsReview) 검증 시나리오로 재사용할 수 있어야 한다.

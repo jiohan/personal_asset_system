@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { listAccounts, listTransactions, type AccountResponse, type TransactionResponse } from '../api';
 import { NavLink } from 'react-router-dom';
 
+function transactionAccountLabel(tx: TransactionResponse, accountNameById: Map<number, string>): string {
+    if (tx.type === 'TRANSFER') {
+        const fromLabel = tx.fromAccountId ? (accountNameById.get(tx.fromAccountId) ?? `#${tx.fromAccountId}`) : '-';
+        const toLabel = tx.toAccountId ? (accountNameById.get(tx.toAccountId) ?? `#${tx.toAccountId}`) : '-';
+        return `${fromLabel} -> ${toLabel}`;
+    }
+
+    return tx.accountId ? (accountNameById.get(tx.accountId) ?? `#${tx.accountId}`) : '-';
+}
+
 export default function DashboardPage() {
     const [accounts, setAccounts] = useState<AccountResponse[]>([]);
     const [rxLoading, setRxLoading] = useState(true);
@@ -100,7 +110,7 @@ export default function DashboardPage() {
                                 <tr key={tx.id}>
                                     <td>{tx.txDate}</td>
                                     <td>{tx.description || '(no description)'} <span className="hint block">{tx.type}</span></td>
-                                    <td>{tx.accountId ? (accountNameById.get(tx.accountId) ?? `#${tx.accountId}`) : '-'}</td>
+                                    <td>{transactionAccountLabel(tx, accountNameById)}</td>
                                     <td className={tx.type === 'INCOME' ? 'text-cyan' : ''}>
                                         {(tx.type === 'INCOME' ? '+' : (tx.type === 'EXPENSE' ? '-' : '↔'))}{tx.amount.toLocaleString('ko-KR')} KRW
                                     </td>

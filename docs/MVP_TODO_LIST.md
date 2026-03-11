@@ -50,7 +50,7 @@ Scope: 수입/지출 생성/수정/삭제 + 목록 필터
 - [x] UI: 거래 입력폼 + 목록 필터/검색 연결
 - [x] UI: 카테고리 선택(거래 입력폼)
 - [x] Tests: 성공/검증실패 + soft delete 제외 확인
-- [ ] Edge: `excludeFromReports=true`의 의미(지출 통계 제외) 보장
+- [x] Edge: `excludeFromReports=true`의 의미(지출 통계 제외) 보장
 
 ### Slice 4. Transfer + Report Exclusion Rule
 Scope: TRANSFER 입력/조회 + 현금흐름 제외 규칙
@@ -91,11 +91,20 @@ Scope: `/backups/export`, `/backups/import`
 ---
 
 ## 4) Cross-cutting Checklist (매 슬라이스 공통)
-- [ ] OpenAPI 변경 diff 리뷰 완료
-- [ ] 에러 포맷(`ApiErrorResponse`) 일관성 유지
-- [ ] user scope 누락 없음(조회/수정/삭제 전부)
-- [ ] CI 기준 테스트 통과(backend + frontend)
-- [ ] 문서 갱신(가이드/README 필요 항목)
+- [x] OpenAPI 변경 diff 리뷰 완료
+- [x] 에러 포맷(`ApiErrorResponse`) 일관성 유지
+- [x] user scope 누락 없음(조회/수정/삭제 전부)
+- [x] CI 기준 테스트 통과(backend + frontend)
+- [x] 문서 갱신(가이드/README 필요 항목)
+
+### Pre-Slice-6 Audit Snapshot (2026-03-10)
+- [x] `./mvnw test` (backend)
+- [x] `npm run test -- --run` (frontend)
+- [x] `bash scripts/contract/openapi_lint.sh`
+- [x] `bash scripts/contract/spec_impl_drift.sh`
+- [x] `npm run build` (frontend)
+- [x] `bash scripts/dev/smoke_local.sh --full`
+- [x] Live API walkthrough: signup -> accounts/category create+patch -> expense/transfer create -> reports -> delete
 
 ## 5) Jira 등록용 이슈 구조(복붙 템플릿)
 

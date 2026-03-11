@@ -79,6 +79,24 @@ cd backend && ./mvnw test
 cd frontend && npm run test -- --run
 ```
 
+## Slice 1-5 Status
+Verified on 2026-03-10:
+- Slice 1: auth/session/CSRF flow is implemented and tested
+- Slice 2: accounts CRUD + current balance projection is implemented and tested
+- Slice 3: income/expense transactions + categories + inbox rules are implemented and tested
+- Slice 4: transfer create/update/list flow is implemented; `/transfers` now routes to the transfer-filtered transactions workspace
+- Slice 5: reports summary/transfers are implemented; reports page includes `This Month` / `Last Month` presets
+
+Pre-slice-6 verification commands:
+```bash
+cd backend && ./mvnw test
+cd frontend && npm run test -- --run
+bash scripts/contract/openapi_lint.sh
+bash scripts/contract/spec_impl_drift.sh
+cd frontend && npm run build
+bash scripts/dev/smoke_local.sh --full
+```
+
 ## MVP Progress Source of Truth
 - Single source of truth: `docs/MVP_TODO_LIST.md`
 - Rule: update progress only by checking/unchecking boxes in that file; Jira/GitHub boards are reference-only.

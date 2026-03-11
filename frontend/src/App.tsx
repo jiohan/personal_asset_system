@@ -26,7 +26,7 @@ export default function App() {
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
 
-              <Route path="/transfers" element={<PlaceholderPage title="Transfers" slice={4} />} />
+              <Route path="/transfers" element={<Navigate to="/transactions?type=TRANSFER" replace />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/imports" element={<PlaceholderPage title="Imports" slice={6} />} />
               <Route path="/backups" element={<PlaceholderPage title="Backups" slice={7} />} />

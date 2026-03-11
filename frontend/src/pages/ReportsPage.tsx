@@ -14,8 +14,30 @@ function monthStartISO() {
   return isoLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
 }
 
+function monthEndISO(year: number, monthIndex: number) {
+  return isoLocalDate(new Date(year, monthIndex + 1, 0));
+}
+
 function todayISO() {
   return isoLocalDate(new Date());
+}
+
+function currentMonthRange() {
+  const now = new Date();
+  return {
+    from: isoLocalDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: isoLocalDate(now)
+  };
+}
+
+function lastMonthRange() {
+  const now = new Date();
+  const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const monthIndex = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+  return {
+    from: isoLocalDate(new Date(year, monthIndex, 1)),
+    to: monthEndISO(year, monthIndex)
+  };
 }
 
 export default function ReportsPage() {
@@ -33,6 +55,11 @@ export default function ReportsPage() {
     for (const a of accounts) map.set(a.id, a.name);
     return map;
   }, [accounts]);
+
+  const applyRange = (range: { from: string; to: string }) => {
+    setFrom(range.from);
+    setTo(range.to);
+  };
 
   useEffect(() => {
     let active = true;
@@ -70,6 +97,11 @@ export default function ReportsPage() {
       </div>
 
       <div className="card">
+        <div className="chip-group" style={{ marginBottom: '1rem' }}>
+          <span className="chip-group-label">Quick Range</span>
+          <button className="chip" type="button" onClick={() => applyRange(currentMonthRange())}>This Month</button>
+          <button className="chip" type="button" onClick={() => applyRange(lastMonthRange())}>Last Month</button>
+        </div>
         <div className="grid-two">
           <label className="field">
             <span>From</span>

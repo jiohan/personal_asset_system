@@ -1,13 +1,16 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isApiError, logout } from '../api';
 import { useState } from 'react';
 
 export default function Layout() {
     const { me, setMe } = useAuth();
+    const location = useLocation();
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
     const [logoutError, setLogoutError] = useState('');
+    const inTransferWorkspace = location.pathname === '/transactions'
+        && new URLSearchParams(location.search).get('type') === 'TRANSFER';
 
     async function onLogout() {
         setSubmitting(true);
@@ -38,7 +41,7 @@ export default function Layout() {
                     <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         Dashboard
                     </NavLink>
-                    <NavLink to="/transactions" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                    <NavLink to="/transactions" className={({ isActive }) => (isActive && !inTransferWorkspace) ? 'nav-item active' : 'nav-item'}>
                         Transactions
                     </NavLink>
                     <NavLink to="/accounts" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
@@ -50,8 +53,8 @@ export default function Layout() {
 
                     <div className="sidebar-divider" />
 
-                    <NavLink to="/transfers" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-                        Transfers <span className="badge">Soon</span>
+                    <NavLink to="/transfers" className={() => inTransferWorkspace ? 'nav-item active' : 'nav-item'}>
+                        Transfers
                     </NavLink>
                     <NavLink to="/reports" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         Reports

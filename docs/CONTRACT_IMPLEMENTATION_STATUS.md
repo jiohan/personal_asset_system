@@ -37,3 +37,20 @@ Note:
 - [x] GET /categories
 - [x] POST /categories
 - [x] PATCH /categories/{id}
+
+## Verification Snapshot (2026-03-10)
+
+- Contract gate: `bash scripts/contract/openapi_lint.sh`
+- Drift gate: `bash scripts/contract/spec_impl_drift.sh`
+- Backend tests: `cd backend && ./mvnw test`
+- Frontend tests: `cd frontend && npm run test -- --run`
+- Frontend production build: `cd frontend && npm run build`
+- Local smoke: `bash scripts/dev/smoke_local.sh --full`
+
+Live API flow re-verified against the running local stack:
+- signup/login/me/logout
+- accounts create/list/patch
+- categories create/list/patch
+- transactions create/list/get/patch/delete
+- transfer create/list/report inclusion
+- reports summary/transfers
