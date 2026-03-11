@@ -174,6 +174,36 @@ export type TransferReportResponse = {
   items: TransferReportItem[];
 };
 
+export type CsvImportDefaultType = 'INCOME' | 'EXPENSE';
+
+export type CsvImportColumnMapping = {
+  txDate: string;
+  amount: string;
+  description: string;
+  account: string;
+  type?: string;
+};
+
+export type CsvImportMappingPayload = {
+  columns: CsvImportColumnMapping;
+  accountNameMap: Record<string, number>;
+  defaultType?: CsvImportDefaultType;
+};
+
+export type CsvImportWarning = {
+  row: number;
+  code: string;
+  message: string;
+};
+
+export type CsvImportResultResponse = {
+  createdCount: number;
+  skippedCount: number;
+  warningCount: number;
+  errorCount: number;
+  warnings?: CsvImportWarning[];
+};
+
 function getCookie(name: string): string | null {
   const prefix = `${encodeURIComponent(name)}=`;
   for (const part of document.cookie.split(';')) {
@@ -384,4 +414,20 @@ export async function patchCategory(id: number, req: CategoryPatchRequest): Prom
     body: JSON.stringify(req)
   });
   return requireOkJson<CategoryResponse>(res);
+}
+
+export async function importTransactionsCsv(
+  file: File,
+  mapping: CsvImportMappingPayload
+): Promise<CsvImportResultResponse> {
+  await ensureXsrfCookie();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('mapping', JSON.stringify(mapping));
+
+  const res = await apiFetch('/imports/csv', {
+    method: 'POST',
+    body: formData
+  });
+  return requireOkJson<CsvImportResultResponse>(res);
 }

@@ -73,11 +73,11 @@ Scope: `/reports/summary`, `/reports/transfers`
 ### Slice 6. CSV Import (One-shot)
 Scope: `/imports/csv` 1-shot 검증/저장
 
-- [ ] Contract: 업로드 요청/결과/에러/중복처리 정책 예시 확정
-- [ ] API: parse -> validate -> dedupe(skip) -> save(원자 처리)
-- [ ] UI: 파일 업로드 + 결과 피드백
-- [ ] Tests: 전체 롤백, 중복 skip, needsReview 보정
-- [ ] Edge: 부분 성공 금지, 날짜 파싱 실패 처리
+- [x] Contract: 업로드 요청/결과/에러/중복처리 정책 예시 확정
+- [x] API: parse -> validate -> dedupe(skip) -> save(원자 처리)
+- [x] UI: 파일 업로드 + 결과 피드백
+- [x] Tests: 전체 롤백, 중복 skip, needsReview 보정
+- [x] Edge: 부분 성공 금지, 날짜 파싱 실패 처리
 
 ### Slice 7. Backup Export/Import (v1)
 Scope: `/backups/export`, `/backups/import`
@@ -105,6 +105,16 @@ Scope: `/backups/export`, `/backups/import`
 - [x] `npm run build` (frontend)
 - [x] `bash scripts/dev/smoke_local.sh --full`
 - [x] Live API walkthrough: signup -> accounts/category create+patch -> expense/transfer create -> reports -> delete
+
+### Pre-Slice-7 Audit Snapshot (2026-03-11)
+- [x] `cd backend && ./mvnw test`
+- [x] `cd frontend && npm run test -- --run`
+- [x] `bash scripts/contract/openapi_lint.sh`
+- [x] `bash scripts/contract/spec_impl_drift.sh`
+- [x] `cd frontend && npm run build`
+- [x] `bash scripts/dev/smoke_local.sh --full`
+- [x] Live API walkthrough on a fresh backend instance: signup -> account create -> CSV import(created=1, skipped=1) -> invalid CSV rollback(422, zero partial rows)
+- [x] GUI audit fallback: Playwright screenshot review of `/imports` with populated preview and account mapping state
 
 ## 5) Jira 등록용 이슈 구조(복붙 템플릿)
 
