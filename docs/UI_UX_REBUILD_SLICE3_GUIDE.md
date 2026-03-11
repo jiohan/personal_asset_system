@@ -1,5 +1,9 @@
 # UI/UX Rebuild Guide (Slice 3 Baseline)
 
+> Historical baseline note (2026-03-11):
+> This document captures the Slice 3 UI rebuild constraints only.
+> Current repo state has Slice 4, Slice 5, and Slice 6 implemented, so placeholder guidance for `transfers`, `reports`, and `imports` is superseded by `README.md`, `docs/MVP_TODO_LIST.md`, and `docs/NEXT_STEPS_AFTER_SLICE5.md`.
+
 ## 1) 목적
 현재 `slice3`까지 완료된 상태를 기준으로, 단일 페이지 UI를 실제 자산관리 대시보드 형태(기능별 페이지 분리 + 보호 라우팅 + 개선된 UX)로 재구성할 때의 실행 기준을 정의한다.
 

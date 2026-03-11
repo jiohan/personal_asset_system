@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import ReportsPage from './ReportsPage';
 
 vi.mock('../api', () => {
@@ -29,6 +29,10 @@ vi.mock('../api', () => {
 import { getReportSummary, getTransferReport } from '../api';
 
 describe('ReportsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('loads summary and transfer report for default date range', async () => {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -52,5 +56,23 @@ describe('ReportsPage', () => {
     expect(await screen.findByText('Checking')).toBeInTheDocument();
     expect(await screen.findByText('Savings')).toBeInTheDocument();
     expect(await screen.findByText('500 KRW')).toBeInTheDocument();
+  });
+
+  it('applies last month preset and reloads reports', async () => {
+    const now = new Date();
+    const presetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const presetMonthIndex = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const expectedFrom = `${presetYear}-${String(presetMonthIndex + 1).padStart(2, '0')}-01`;
+    const expectedTo = `${presetYear}-${String(presetMonthIndex + 1).padStart(2, '0')}-${String(new Date(presetYear, presetMonthIndex + 1, 0).getDate()).padStart(2, '0')}`;
+
+    render(<ReportsPage />);
+
+    await waitFor(() => expect(getReportSummary).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Last Month' }));
+
+    await waitFor(() => {
+      expect(getReportSummary).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
+      expect(getTransferReport).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
+    });
   });
 });

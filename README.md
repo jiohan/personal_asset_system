@@ -79,6 +79,30 @@ cd backend && ./mvnw test
 cd frontend && npm run test -- --run
 ```
 
+## Slice 1-6 Status
+Verified on 2026-03-11:
+- Slice 1: auth/session/CSRF flow is implemented and tested
+- Slice 2: accounts CRUD + current balance projection is implemented and tested
+- Slice 3: income/expense transactions + categories + inbox rules are implemented and tested
+- Slice 4: transfer create/update/list flow is implemented; `/transfers` now routes to the transfer-filtered transactions workspace
+- Slice 5: reports summary/transfers are implemented; reports page includes `This Month` / `Last Month` presets
+- Slice 6: CSV one-shot import is implemented; `/imports` now supports upload, header mapping, account mapping, preview, duplicate skip, and atomic rollback on validation failure
+
+Post-slice-6 verification commands:
+```bash
+cd backend && ./mvnw test
+cd frontend && npm run test -- --run
+bash scripts/contract/openapi_lint.sh
+bash scripts/contract/spec_impl_drift.sh
+cd frontend && npm run build
+bash scripts/dev/smoke_local.sh --full
+```
+
+Runtime verification notes:
+- Fresh backend runtime check passed for `POST /imports/csv`: `201 Created` with `createdCount=1`, `skippedCount=1`
+- Invalid CSV runtime check passed: `422 VALIDATION_ERROR`, and no partial rows were saved
+- GUI audit fallback used a Playwright screenshot of `/imports` because Figma MCP / Chrome DevTools MCP were unavailable in this session
+
 ## MVP Progress Source of Truth
 - Single source of truth: `docs/MVP_TODO_LIST.md`
 - Rule: update progress only by checking/unchecking boxes in that file; Jira/GitHub boards are reference-only.

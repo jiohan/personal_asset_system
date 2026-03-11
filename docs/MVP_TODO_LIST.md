@@ -50,7 +50,7 @@ Scope: 수입/지출 생성/수정/삭제 + 목록 필터
 - [x] UI: 거래 입력폼 + 목록 필터/검색 연결
 - [x] UI: 카테고리 선택(거래 입력폼)
 - [x] Tests: 성공/검증실패 + soft delete 제외 확인
-- [ ] Edge: `excludeFromReports=true`의 의미(지출 통계 제외) 보장
+- [x] Edge: `excludeFromReports=true`의 의미(지출 통계 제외) 보장
 
 ### Slice 4. Transfer + Report Exclusion Rule
 Scope: TRANSFER 입력/조회 + 현금흐름 제외 규칙
@@ -73,11 +73,11 @@ Scope: `/reports/summary`, `/reports/transfers`
 ### Slice 6. CSV Import (One-shot)
 Scope: `/imports/csv` 1-shot 검증/저장
 
-- [ ] Contract: 업로드 요청/결과/에러/중복처리 정책 예시 확정
-- [ ] API: parse -> validate -> dedupe(skip) -> save(원자 처리)
-- [ ] UI: 파일 업로드 + 결과 피드백
-- [ ] Tests: 전체 롤백, 중복 skip, needsReview 보정
-- [ ] Edge: 부분 성공 금지, 날짜 파싱 실패 처리
+- [x] Contract: 업로드 요청/결과/에러/중복처리 정책 예시 확정
+- [x] API: parse -> validate -> dedupe(skip) -> save(원자 처리)
+- [x] UI: 파일 업로드 + 결과 피드백
+- [x] Tests: 전체 롤백, 중복 skip, needsReview 보정
+- [x] Edge: 부분 성공 금지, 날짜 파싱 실패 처리
 
 ### Slice 7. Backup Export/Import (v1)
 Scope: `/backups/export`, `/backups/import`
@@ -91,11 +91,30 @@ Scope: `/backups/export`, `/backups/import`
 ---
 
 ## 4) Cross-cutting Checklist (매 슬라이스 공통)
-- [ ] OpenAPI 변경 diff 리뷰 완료
-- [ ] 에러 포맷(`ApiErrorResponse`) 일관성 유지
-- [ ] user scope 누락 없음(조회/수정/삭제 전부)
-- [ ] CI 기준 테스트 통과(backend + frontend)
-- [ ] 문서 갱신(가이드/README 필요 항목)
+- [x] OpenAPI 변경 diff 리뷰 완료
+- [x] 에러 포맷(`ApiErrorResponse`) 일관성 유지
+- [x] user scope 누락 없음(조회/수정/삭제 전부)
+- [x] CI 기준 테스트 통과(backend + frontend)
+- [x] 문서 갱신(가이드/README 필요 항목)
+
+### Pre-Slice-6 Audit Snapshot (2026-03-10)
+- [x] `./mvnw test` (backend)
+- [x] `npm run test -- --run` (frontend)
+- [x] `bash scripts/contract/openapi_lint.sh`
+- [x] `bash scripts/contract/spec_impl_drift.sh`
+- [x] `npm run build` (frontend)
+- [x] `bash scripts/dev/smoke_local.sh --full`
+- [x] Live API walkthrough: signup -> accounts/category create+patch -> expense/transfer create -> reports -> delete
+
+### Pre-Slice-7 Audit Snapshot (2026-03-11)
+- [x] `cd backend && ./mvnw test`
+- [x] `cd frontend && npm run test -- --run`
+- [x] `bash scripts/contract/openapi_lint.sh`
+- [x] `bash scripts/contract/spec_impl_drift.sh`
+- [x] `cd frontend && npm run build`
+- [x] `bash scripts/dev/smoke_local.sh --full`
+- [x] Live API walkthrough on a fresh backend instance: signup -> account create -> CSV import(created=1, skipped=1) -> invalid CSV rollback(422, zero partial rows)
+- [x] GUI audit fallback: Playwright screenshot review of `/imports` with populated preview and account mapping state
 
 ## 5) Jira 등록용 이슈 구조(복붙 템플릿)
 

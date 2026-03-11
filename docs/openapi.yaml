@@ -344,6 +344,12 @@ paths:
     post:
       tags: [Imports]
       summary: CSV one-shot import
+      description: |
+        MVP Slice 6 rules:
+        - One request performs parse -> validate -> dedupe(skip) -> save.
+        - Any row-level error rejects the entire import with 422 and no rows are saved.
+        - Current implementation supports INCOME/EXPENSE imports only.
+        - `mapping` is a JSON string matching `CsvImportMappingPayload`.
       parameters:
         - $ref: '#/components/parameters/CsrfTokenHeader'
       requestBody:
@@ -360,6 +366,7 @@ paths:
                 mapping:
                   type: string
                   description: JSON string for column/account mapping.
+                  example: '{"columns":{"txDate":"Date","amount":"Amount","description":"Description","account":"Account","type":"Type"},"accountNameMap":{"Main Checking":1},"defaultType":"EXPENSE"}'
       responses:
         '201':
           description: Created
@@ -1010,6 +1017,39 @@ components:
           type: string
         message:
           type: string
+    CsvImportDefaultType:
+      type: string
+      enum: [INCOME, EXPENSE]
+    CsvImportColumnMapping:
+      type: object
+      required: [txDate, amount, description, account]
+      properties:
+        txDate:
+          type: string
+        amount:
+          type: string
+        description:
+          type: string
+        account:
+          type: string
+        type:
+          type: string
+          description: Optional CSV header name for an explicit transaction type column.
+    CsvImportMappingPayload:
+      type: object
+      required: [columns, accountNameMap]
+      properties:
+        columns:
+          $ref: '#/components/schemas/CsvImportColumnMapping'
+        accountNameMap:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        defaultType:
+          $ref: '#/components/schemas/CsvImportDefaultType'
+      description: |
+        UI sends this payload as a JSON string in the multipart `mapping` field.
     CsvImportResultResponse:
       type: object
       required: [createdCount, skippedCount, warningCount, errorCount]

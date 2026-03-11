@@ -29,7 +29,7 @@ Note:
 - [x] GET /reports/summary
 - [x] GET /reports/transfers
 
-- [ ] POST /imports/csv
+- [x] POST /imports/csv
 
 - [ ] GET /backups/export
 - [ ] POST /backups/import
@@ -37,3 +37,23 @@ Note:
 - [x] GET /categories
 - [x] POST /categories
 - [x] PATCH /categories/{id}
+
+## Verification Snapshot (2026-03-11)
+
+- Contract gate: `bash scripts/contract/openapi_lint.sh`
+- Drift gate: `bash scripts/contract/spec_impl_drift.sh`
+- Backend tests: `cd backend && ./mvnw test`
+- Frontend tests: `cd frontend && npm run test -- --run`
+- Frontend production build: `cd frontend && npm run build`
+- Local smoke: `bash scripts/dev/smoke_local.sh --full`
+- Fresh runtime import check: signup -> account create -> `POST /imports/csv` (`201 created=1 skipped=1`) -> invalid CSV (`422`, zero partial rows)
+- GUI fallback check: Playwright-driven screenshot review of `/imports` with preview + account mapping visible
+
+Live API flow re-verified against the running local stack:
+- signup/login/me/logout
+- accounts create/list/patch
+- categories create/list/patch
+- transactions create/list/get/patch/delete
+- transfer create/list/report inclusion
+- reports summary/transfers
+- csv import create/skip/rollback behavior
