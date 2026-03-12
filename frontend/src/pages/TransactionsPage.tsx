@@ -16,6 +16,7 @@ import {
 } from '../api';
 import { useAuth } from '../context/AuthContext';
 import CreatableCombobox, { type ComboboxOption } from '../components/CreatableCombobox';
+import QuickEntryComposer from '../components/QuickEntryComposer';
 import SummaryCards from '../components/SummaryCards';
 
 function pad2(n: number): string {
@@ -559,6 +560,17 @@ export default function TransactionsPage() {
       .slice(0, 10);
   }, [txType, usageForCurrentType, selectableCategoryIdSet]);
 
+  const quickEntryCategoryIds = useMemo(() => {
+    return [...categoryUsage.EXPENSE, ...categoryUsage.INCOME]
+      .sort((left, right) => {
+        if (right.useCount !== left.useCount) return right.useCount - left.useCount;
+        return right.lastUsedAt.localeCompare(left.lastUsedAt);
+      })
+      .map((item) => item.categoryId)
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .slice(0, 8);
+  }, [categoryUsage]);
+
   const visibleTransactions = useMemo(
     () => transactions.filter((tx) => !hiddenDeletedIds.has(tx.id)),
     [transactions, hiddenDeletedIds]
@@ -1021,11 +1033,25 @@ export default function TransactionsPage() {
   return (
     <div className="page-container transactions-page">
       <div className="page-header">
-        <h1 className="page-title">TRANSACTIONS</h1>
+        <div>
+          <p className="page-kicker">Operations</p>
+          <h1 className="page-title">TRANSACTIONS</h1>
+        </div>
         <button className="btn btn-primary" onClick={openNewDrawer}>+ NEW TRANSACTION</button>
       </div>
 
       <SummaryCards from={summaryFrom} to={summaryTo} />
+
+      <QuickEntryComposer
+        accounts={accounts}
+        categories={categories}
+        title="Fast Ledger Entry"
+        description="Use the inline path for daily capture. Open the side sheet only when you need full detail editing."
+        actionLabel="Save Quick Entry"
+        onSaved={() => loadTransactions(txPage)}
+        onOpenFullForm={openNewDrawer}
+        suggestedCategoryIds={quickEntryCategoryIds}
+      />
 
       <div className="filters-bar card">
         <div className="filter-chips">

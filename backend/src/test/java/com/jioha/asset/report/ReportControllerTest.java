@@ -42,8 +42,8 @@ class ReportControllerTest {
   void summary_excludes_excludedExpenses_and_counts_transfers_as_transferVolume() throws Exception {
     SessionContext me = signupAndLogin();
 
-    long checking = createAccount(me, "Checking", "CHECKING", true);
-    long savings = createAccount(me, "Savings", "SAVINGS", true);
+    long checking = createAccount(me, "Checking", "CHECKING", 0, true);
+    long savings = createAccount(me, "Savings", "SAVINGS", 0, true);
     long food = createCategory(me, "EXPENSE", "Food");
 
     createTransaction(me, Map.of(
@@ -90,7 +90,7 @@ class ReportControllerTest {
     ));
 
     SessionContext other = signupAndLogin();
-    long otherAccount = createAccount(other, "Other", "CHECKING", true);
+    long otherAccount = createAccount(other, "Other", "CHECKING", 0, true);
     createTransaction(other, Map.of(
         "txDate", "2026-03-10",
         "type", "INCOME",
@@ -115,8 +115,8 @@ class ReportControllerTest {
   void transfers_groups_by_account_pair_and_sums_amounts() throws Exception {
     SessionContext me = signupAndLogin();
 
-    long from = createAccount(me, "From", "CHECKING", true);
-    long to = createAccount(me, "To", "SAVINGS", true);
+    long from = createAccount(me, "From", "CHECKING", 0, true);
+    long to = createAccount(me, "To", "SAVINGS", 0, true);
 
     createTransaction(me, Map.of(
         "txDate", "2026-03-01",
@@ -170,11 +170,122 @@ class ReportControllerTest {
             .value(Matchers.hasItem(Matchers.containsString("on or after"))));
   }
 
-  private long createAccount(SessionContext session, String name, String type, boolean isActive) throws Exception {
+  @Test
+  void cashflow_and_topExpense_reports_return_runtime_ux_data() throws Exception {
+    SessionContext me = signupAndLogin();
+
+    long checking = createAccount(me, "Checking", "CHECKING", 0, true);
+    long food = createCategory(me, "EXPENSE", "Food");
+    long travel = createCategory(me, "EXPENSE", "Travel");
+
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-01",
+        "type", "INCOME",
+        "amount", 2000,
+        "accountId", checking,
+        "description", "Salary"
+    ));
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-02",
+        "type", "EXPENSE",
+        "amount", 300,
+        "accountId", checking,
+        "categoryId", food,
+        "description", "Lunch"
+    ));
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-02",
+        "type", "EXPENSE",
+        "amount", 500,
+        "accountId", checking,
+        "categoryId", travel,
+        "description", "Train"
+    ));
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-03",
+        "type", "EXPENSE",
+        "amount", 120,
+        "accountId", checking,
+        "description", "Uncategorized"
+    ));
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-03",
+        "type", "EXPENSE",
+        "amount", 999,
+        "accountId", checking,
+        "categoryId", food,
+        "excludeFromReports", true,
+        "description", "Hidden"
+    ));
+
+    mvc.perform(get("/api/v1/reports/cashflow")
+            .cookie(me.sessionCookie)
+            .queryParam("from", "2026-03-01")
+            .queryParam("to", "2026-03-03"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(3))
+        .andExpect(jsonPath("$.items[0].income").value(2000))
+        .andExpect(jsonPath("$.items[0].expense").value(0))
+        .andExpect(jsonPath("$.items[1].expense").value(800))
+        .andExpect(jsonPath("$.items[2].expense").value(120))
+        .andExpect(jsonPath("$.items[2].net").value(-120));
+
+    mvc.perform(get("/api/v1/reports/categories/top-expense")
+            .cookie(me.sessionCookie)
+            .queryParam("from", "2026-03-01")
+            .queryParam("to", "2026-03-03")
+            .queryParam("limit", "3"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(3))
+        .andExpect(jsonPath("$.items[0].categoryName").value("Travel"))
+        .andExpect(jsonPath("$.items[0].amount").value(500))
+        .andExpect(jsonPath("$.items[1].categoryName").value("Food"))
+        .andExpect(jsonPath("$.items[1].amount").value(300))
+        .andExpect(jsonPath("$.items[2].categoryName").value("Uncategorized"))
+        .andExpect(jsonPath("$.items[2].amount").value(120));
+  }
+
+  @Test
+  void balance_trend_returns_daily_account_series() throws Exception {
+    SessionContext me = signupAndLogin();
+
+    long checking = createAccount(me, "Checking", "CHECKING", 1000, true);
+    long wallet = createAccount(me, "Wallet", "CASH", 200, true);
+
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-01",
+        "type", "EXPENSE",
+        "amount", 100,
+        "accountId", checking
+    ));
+    createTransaction(me, Map.of(
+        "txDate", "2026-03-02",
+        "type", "TRANSFER",
+        "amount", 300,
+        "fromAccountId", checking,
+        "toAccountId", wallet
+    ));
+
+    mvc.perform(get("/api/v1/reports/balances")
+            .cookie(me.sessionCookie)
+            .queryParam("from", "2026-03-01")
+            .queryParam("to", "2026-03-03"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items.length()").value(2))
+        .andExpect(jsonPath("$.items[0].accountId").value(checking))
+        .andExpect(jsonPath("$.items[0].points.length()").value(3))
+        .andExpect(jsonPath("$.items[0].points[0].balance").value(900))
+        .andExpect(jsonPath("$.items[0].points[1].balance").value(600))
+        .andExpect(jsonPath("$.items[1].accountId").value(wallet))
+        .andExpect(jsonPath("$.items[1].points[1].balance").value(500));
+  }
+
+  private long createAccount(SessionContext session, String name, String type, long openingBalance, boolean isActive)
+      throws Exception {
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("name", name);
     payload.put("type", type);
-    payload.put("openingBalance", 0);
+    payload.put("openingBalance", openingBalance);
     payload.put("isActive", isActive);
 
     MvcResult res = mvc.perform(post("/api/v1/accounts")

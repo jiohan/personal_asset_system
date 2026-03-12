@@ -18,6 +18,40 @@ vi.mock('../api', () => {
       netSaving: 600,
       transferVolume: 200
     })),
+    getCashflowTrend: vi.fn(async () => ({
+      from: '2026-03-01',
+      to: '2026-03-07',
+      items: [
+        { date: '2026-03-01', income: 1000, expense: 0, net: 1000, transfer: 0 },
+        { date: '2026-03-02', income: 0, expense: 400, net: -400, transfer: 0 }
+      ]
+    })),
+    getTopExpenseCategories: vi.fn(async () => ({
+      from: '2026-03-01',
+      to: '2026-03-07',
+      limit: 6,
+      items: [
+        { categoryId: 11, categoryName: 'Food', amount: 300, transactionCount: 2 },
+        { categoryId: null, categoryName: 'Uncategorized', amount: 100, transactionCount: 1 }
+      ]
+    })),
+    getAccountBalanceTrend: vi.fn(async () => ({
+      from: '2026-03-01',
+      to: '2026-03-07',
+      items: [
+        {
+          accountId: 1,
+          accountName: 'Checking',
+          accountType: 'CHECKING',
+          openingBalance: 0,
+          currentBalance: 600,
+          points: [
+            { date: '2026-03-01', balance: 1000 },
+            { date: '2026-03-02', balance: 600 }
+          ]
+        }
+      ]
+    })),
     getTransferReport: vi.fn(async () => ({
       from: '2026-03-01',
       to: '2026-03-07',
@@ -26,7 +60,13 @@ vi.mock('../api', () => {
   };
 });
 
-import { getReportSummary, getTransferReport } from '../api';
+import {
+  getAccountBalanceTrend,
+  getCashflowTrend,
+  getReportSummary,
+  getTopExpenseCategories,
+  getTransferReport
+} from '../api';
 
 describe('ReportsPage', () => {
   beforeEach(() => {
@@ -46,15 +86,20 @@ describe('ReportsPage', () => {
     await waitFor(() => expect(getReportSummary).toHaveBeenCalled());
     expect(getReportSummary).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo });
     expect(getTransferReport).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo });
+    expect(getCashflowTrend).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo });
+    expect(getTopExpenseCategories).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo, limit: 6 });
+    expect(getAccountBalanceTrend).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo });
 
-    await screen.findByText('Transfers (Grouped by Account Pair)');
+    await screen.findByText('Top Categories');
     expect(await screen.findByText('1,000 KRW')).toBeInTheDocument();
     expect(await screen.findByText('400 KRW')).toBeInTheDocument();
     expect(await screen.findByText('600 KRW')).toBeInTheDocument();
     expect(await screen.findByText('200 KRW')).toBeInTheDocument();
 
-    expect(await screen.findByText('Checking')).toBeInTheDocument();
-    expect(await screen.findByText('Savings')).toBeInTheDocument();
+    expect((await screen.findAllByText('Checking')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('Food')).toBeInTheDocument();
+    expect(await screen.findByText('2 item(s)')).toBeInTheDocument();
+    expect((await screen.findAllByText('Savings')).length).toBeGreaterThan(0);
     expect(await screen.findByText('500 KRW')).toBeInTheDocument();
   });
 
@@ -73,6 +118,9 @@ describe('ReportsPage', () => {
     await waitFor(() => {
       expect(getReportSummary).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
       expect(getTransferReport).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
+      expect(getCashflowTrend).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
+      expect(getTopExpenseCategories).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo, limit: 6 });
+      expect(getAccountBalanceTrend).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });
     });
   });
 });

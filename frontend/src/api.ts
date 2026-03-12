@@ -174,6 +174,54 @@ export type TransferReportResponse = {
   items: TransferReportItem[];
 };
 
+export type CashflowTrendPoint = {
+  date: string;
+  income: number;
+  expense: number;
+  net: number;
+  transfer: number;
+};
+
+export type CashflowTrendResponse = {
+  from: string;
+  to: string;
+  items: CashflowTrendPoint[];
+};
+
+export type TopExpenseCategoryItem = {
+  categoryId?: number | null;
+  categoryName: string;
+  amount: number;
+  transactionCount: number;
+};
+
+export type TopExpenseCategoriesResponse = {
+  from: string;
+  to: string;
+  limit: number;
+  items: TopExpenseCategoryItem[];
+};
+
+export type AccountBalancePoint = {
+  date: string;
+  balance: number;
+};
+
+export type AccountBalanceSeries = {
+  accountId: number;
+  accountName: string;
+  accountType: AccountType;
+  openingBalance: number;
+  currentBalance: number;
+  points: AccountBalancePoint[];
+};
+
+export type AccountBalanceTrendResponse = {
+  from: string;
+  to: string;
+  items: AccountBalanceSeries[];
+};
+
 export type CsvImportDefaultType = 'INCOME' | 'EXPENSE';
 
 export type CsvImportColumnMapping = {
@@ -328,6 +376,29 @@ export async function getTransferReport(args: { from: string; to: string }): Pro
   const params = new URLSearchParams({ from: args.from, to: args.to });
   const res = await apiFetch(`/reports/transfers?${params.toString()}`);
   return requireOkJson<TransferReportResponse>(res);
+}
+
+export async function getCashflowTrend(args: { from: string; to: string }): Promise<CashflowTrendResponse> {
+  const params = new URLSearchParams({ from: args.from, to: args.to });
+  const res = await apiFetch(`/reports/cashflow?${params.toString()}`);
+  return requireOkJson<CashflowTrendResponse>(res);
+}
+
+export async function getTopExpenseCategories(args: {
+  from: string;
+  to: string;
+  limit?: number;
+}): Promise<TopExpenseCategoriesResponse> {
+  const params = new URLSearchParams({ from: args.from, to: args.to });
+  if (args.limit != null) params.set('limit', String(args.limit));
+  const res = await apiFetch(`/reports/categories/top-expense?${params.toString()}`);
+  return requireOkJson<TopExpenseCategoriesResponse>(res);
+}
+
+export async function getAccountBalanceTrend(args: { from: string; to: string }): Promise<AccountBalanceTrendResponse> {
+  const params = new URLSearchParams({ from: args.from, to: args.to });
+  const res = await apiFetch(`/reports/balances?${params.toString()}`);
+  return requireOkJson<AccountBalanceTrendResponse>(res);
 }
 
 export async function listTransactions(params: {

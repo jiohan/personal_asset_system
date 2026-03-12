@@ -29,4 +29,26 @@ public class ReportController {
       @RequestParam LocalDate to) {
     return reportService.transfers(from, to);
   }
+
+  @GetMapping("/cashflow")
+  public CashflowTrendResponse cashflow(
+      @RequestParam LocalDate from,
+      @RequestParam LocalDate to) {
+    return reportService.cashflow(from, to);
+  }
+
+  @GetMapping("/categories/top-expense")
+  public TopExpenseCategoriesResponse topExpenseCategories(
+      @RequestParam LocalDate from,
+      @RequestParam LocalDate to,
+      @RequestParam(defaultValue = "6") int limit) {
+    return reportService.topExpenseCategories(from, to, limit);
+  }
+
+  @GetMapping("/balances")
+  public AccountBalanceTrendResponse accountBalances(
+      @RequestParam LocalDate from,
+      @RequestParam LocalDate to) {
+    return reportService.accountBalances(from, to);
+  }
 }
