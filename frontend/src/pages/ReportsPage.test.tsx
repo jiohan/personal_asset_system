@@ -90,7 +90,7 @@ describe('ReportsPage', () => {
     expect(getTopExpenseCategories).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo, limit: 6 });
     expect(getAccountBalanceTrend).toHaveBeenCalledWith({ from: expectedFrom, to: expectedTo });
 
-    await screen.findByText('Top Categories');
+    await screen.findByText('주요 카테고리');
     expect(await screen.findByText('1,000 KRW')).toBeInTheDocument();
     expect(await screen.findByText('400 KRW')).toBeInTheDocument();
     expect(await screen.findByText('600 KRW')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('ReportsPage', () => {
 
     expect((await screen.findAllByText('Checking')).length).toBeGreaterThan(0);
     expect(await screen.findByText('Food')).toBeInTheDocument();
-    expect(await screen.findByText('2 item(s)')).toBeInTheDocument();
+    expect(await screen.findByText('2건의 거래')).toBeInTheDocument();
     expect((await screen.findAllByText('Savings')).length).toBeGreaterThan(0);
     expect(await screen.findByText('500 KRW')).toBeInTheDocument();
   });
@@ -113,7 +113,7 @@ describe('ReportsPage', () => {
     render(<ReportsPage />);
 
     await waitFor(() => expect(getReportSummary).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: 'Last Month' }));
+    fireEvent.click(screen.getByRole('button', { name: '지난 달' }));
 
     await waitFor(() => {
       expect(getReportSummary).toHaveBeenLastCalledWith({ from: expectedFrom, to: expectedTo });

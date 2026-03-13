@@ -44,16 +44,16 @@ describe('AccountsPage', () => {
 
     render(<AccountsPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Ledger Accounts' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '자산 계좌' })).toBeInTheDocument();
     expect(screen.getByText('Main Checking')).toBeInTheDocument();
     expect(screen.getByText('Wallet')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archive Main Checking' }));
+    fireEvent.click(screen.getByRole('button', { name: '보관 Main Checking' }));
 
     await waitFor(() => {
       expect(patchAccount).toHaveBeenCalledWith(1, { isActive: false });
     });
-    expect(await screen.findByText('Account status updated.')).toBeInTheDocument();
+    expect(await screen.findByText('계좌 상태가 업데이트되었습니다.')).toBeInTheDocument();
   });
 
   it('creates a new account from the quick row form', async () => {
@@ -64,13 +64,13 @@ describe('AccountsPage', () => {
 
     render(<AccountsPage />);
 
-    await screen.findByRole('heading', { name: 'Ledger Accounts' });
-    fireEvent.click(screen.getByRole('button', { name: 'New Row' }));
+    await screen.findByRole('heading', { name: '자산 계좌' });
+    fireEvent.click(screen.getByRole('button', { name: '새 계좌 추가' }));
 
-    fireEvent.change(screen.getByLabelText('Account name'), { target: { value: 'Wallet' } });
-    fireEvent.change(screen.getByLabelText('Account type'), { target: { value: 'CASH' } });
-    fireEvent.change(screen.getByLabelText('Opening balance (KRW)'), { target: { value: '20000' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    fireEvent.change(screen.getByLabelText('계좌명'), { target: { value: 'Wallet' } });
+    fireEvent.change(screen.getByLabelText('계좌 유형'), { target: { value: 'CASH' } });
+    fireEvent.change(screen.getByLabelText('기초 잔액 (KRW)'), { target: { value: '20000' } });
+    fireEvent.click(screen.getByRole('button', { name: '계좌 생성' }));
 
     await waitFor(() => {
       expect(createAccount).toHaveBeenCalledWith({
@@ -80,6 +80,6 @@ describe('AccountsPage', () => {
         isActive: true
       });
     });
-    expect(await screen.findByText('Account row added to the library.')).toBeInTheDocument();
+    expect(await screen.findByText('라이브러리에 계좌가 추가되었습니다.')).toBeInTheDocument();
   });
 });

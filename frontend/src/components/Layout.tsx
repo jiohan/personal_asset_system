@@ -10,29 +10,29 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-    { to: '/dashboard', label: 'Dashboard', group: 'Operations' },
-    { to: '/transactions', label: 'Transactions', group: 'Operations' },
-    { to: '/imports', label: 'Imports', group: 'Operations' },
-    { to: '/accounts', label: 'Accounts', group: 'Library' },
-    { to: '/categories', label: 'Categories', group: 'Library' },
-    { to: '/reports', label: 'Reports', group: 'Library' },
-    { to: '/backups', label: 'Backups', group: 'Library' }
+    { to: '/dashboard', label: '대시보드', group: 'Operations' },
+    { to: '/transactions', label: '거래 내역', group: 'Operations' },
+    { to: '/imports', label: '가져오기', group: 'Operations' },
+    { to: '/accounts', label: '계좌 관리', group: 'Library' },
+    { to: '/categories', label: '카테고리', group: 'Library' },
+    { to: '/reports', label: '보고서', group: 'Library' },
+    { to: '/backups', label: '백업', group: 'Library' }
 ];
 
 function currentPageMeta(pathname: string, search: string) {
     const params = new URLSearchParams(search);
-    if (pathname === '/dashboard') return { title: 'Control Center', eyebrow: 'Operations' };
+    if (pathname === '/dashboard') return { title: '컨트롤 센터', eyebrow: '운영' };
     if (pathname === '/transactions') {
         return params.get('type') === 'TRANSFER'
-            ? { title: 'Transfers', eyebrow: 'Operations' }
-            : { title: 'Transactions', eyebrow: 'Operations' };
+            ? { title: '이체 내역', eyebrow: '워크스페이스' }
+            : { title: '거래 목록', eyebrow: '운영' };
     }
-    if (pathname === '/imports') return { title: 'Import Studio', eyebrow: 'Operations' };
-    if (pathname === '/accounts') return { title: 'Accounts', eyebrow: 'Library' };
-    if (pathname === '/categories') return { title: 'Categories', eyebrow: 'Library' };
-    if (pathname === '/reports') return { title: 'Reports', eyebrow: 'Library' };
-    if (pathname === '/backups') return { title: 'Backups', eyebrow: 'Library' };
-    return { title: 'Asset System', eyebrow: 'Workspace' };
+    if (pathname === '/imports') return { title: '데이터 가져오기', eyebrow: '운영' };
+    if (pathname === '/accounts') return { title: '계좌 관리', eyebrow: '라이브러리' };
+    if (pathname === '/categories') return { title: '카테고리 관리', eyebrow: '라이브러리' };
+    if (pathname === '/reports') return { title: '자산 보고서', eyebrow: '라이브러리' };
+    if (pathname === '/backups') return { title: '백업 관리', eyebrow: '라이브러리' };
+    return { title: '자산 관리 시스템', eyebrow: '워크스페이스' };
 }
 
 export default function Layout() {
@@ -76,38 +76,41 @@ export default function Layout() {
             <aside className="sidebar">
                 <div className="sidebar-brand">
                     <div className="brand-lockup">
-                        <span className="brand-overline">Personal Ledger</span>
-                        <h2>ASSET SYSTEM</h2>
+                        <span className="brand-overline">개인 가계부</span>
+                        <h2>자산 관리 시스템</h2>
                     </div>
-                    <button className="sidebar-close" type="button" onClick={() => setNavOpen(false)}>Close</button>
+                    <button className="sidebar-close" type="button" onClick={() => setNavOpen(false)}>닫기</button>
                 </div>
                 <nav className="sidebar-nav">
-                    {(['Operations', 'Library'] as const).map((group) => (
-                        <div key={group} className="nav-section">
-                            <span className="nav-section-label">{group}</span>
-                            {NAV_ITEMS.filter((item) => item.group === group).map((item) => (
-                                <NavLink
-                                    key={item.to}
-                                    to={item.to}
-                                    className={({ isActive }) => {
-                                        const active = item.to === '/transactions'
-                                            ? isActive && !inTransferWorkspace
-                                            : item.to === '/backups'
-                                                ? isActive
-                                                : isActive;
-                                        return active ? 'nav-item active' : 'nav-item';
-                                    }}
-                                >
-                                    <span className="nav-item-label">{item.label}</span>
-                                    {item.to === '/backups' ? <span className="badge">Soon</span> : null}
-                                </NavLink>
-                            ))}
-                        </div>
-                    ))}
+                    {(['운영', '라이브러리'] as const).map((label, idx) => {
+                        const group = idx === 0 ? 'Operations' : 'Library';
+                        return (
+                            <div key={group} className="nav-section">
+                                <span className="nav-section-label">{label}</span>
+                                {NAV_ITEMS.filter((item) => item.group === group).map((item) => (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        className={({ isActive }) => {
+                                            const active = item.to === '/transactions'
+                                                ? isActive && !inTransferWorkspace
+                                                : item.to === '/backups'
+                                                    ? isActive
+                                                    : isActive;
+                                            return active ? 'nav-item active' : 'nav-item';
+                                        }}
+                                    >
+                                        <span className="nav-item-label">{item.label}</span>
+                                        {item.to === '/backups' ? <span className="badge">준비 중</span> : null}
+                                    </NavLink>
+                                ))}
+                            </div>
+                        );
+                    })}
                     <div className="nav-section nav-section--solo">
-                        <span className="nav-section-label">Workspace</span>
+                        <span className="nav-section-label">워크스페이스</span>
                         <NavLink to="/transfers" className={() => inTransferWorkspace ? 'nav-item active' : 'nav-item'}>
-                            <span className="nav-item-label">Transfers</span>
+                            <span className="nav-item-label">이체 관리</span>
                         </NavLink>
                     </div>
                 </nav>
@@ -117,7 +120,7 @@ export default function Layout() {
                         type="button"
                         onClick={() => setRailCollapsed((value) => !value)}
                     >
-                        {railCollapsed ? 'Expand Rail' : 'Collapse Rail'}
+                        {railCollapsed ? '메뉴 펼치기' : '메뉴 접기'}
                     </button>
                 </div>
             </aside>
@@ -135,7 +138,7 @@ export default function Layout() {
                                 setRailCollapsed((value) => !value);
                             }}
                         >
-                            Menu
+                            메뉴
                         </button>
                         <div className="topbar-title-block">
                             <span className="topbar-eyebrow">{pageMeta.eyebrow}</span>
@@ -145,7 +148,7 @@ export default function Layout() {
                     <div className="topbar-right">
                         {logoutError ? <span className="hint error">{logoutError}</span> : null}
                         <span className="user-email">{me?.email}</span>
-                        <button className="btn-logout" onClick={onLogout} disabled={submitting}>Logout</button>
+                        <button className="btn-logout" onClick={onLogout} disabled={submitting}>로그아웃</button>
                     </div>
                 </header>
                 <main className="main-content">
@@ -153,16 +156,16 @@ export default function Layout() {
                 </main>
                 <nav className="mobile-bottom-nav" aria-label="Primary">
                     <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'mobile-nav-item active' : 'mobile-nav-item'}>
-                        Dashboard
+                        대시보드
                     </NavLink>
                     <NavLink to="/transactions" className={({ isActive }) => (isActive && !inTransferWorkspace) ? 'mobile-nav-item active' : 'mobile-nav-item'}>
-                        Transactions
+                        거래 내역
                     </NavLink>
                     <NavLink to="/reports" className={({ isActive }) => isActive ? 'mobile-nav-item active' : 'mobile-nav-item'}>
-                        Reports
+                        보고서
                     </NavLink>
                     <button className="mobile-nav-item" type="button" onClick={() => setNavOpen(true)}>
-                        More
+                        더보기
                     </button>
                 </nav>
             </div>

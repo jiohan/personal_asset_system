@@ -65,7 +65,7 @@ describe('App Integration', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'demo' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect((await screen.findAllByText('Control Center')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: '컨트롤 센터', level: 1 })).toBeInTheDocument();
   });
 
   it('sends X-XSRF-TOKEN header for logout and redirects to auth', async () => {
@@ -93,9 +93,9 @@ describe('App Integration', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<App />);
-    expect((await screen.findAllByText('Control Center')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: '컨트롤 센터', level: 1 })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
     expect(await screen.findByRole('tab', { name: 'Login' })).toBeInTheDocument();
   });
 });

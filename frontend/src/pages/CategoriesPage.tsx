@@ -23,7 +23,7 @@ function parseOptionalNonNegativeInteger(input: string, fieldName: string): numb
 
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(`${fieldName} must be a non-negative integer.`);
+    throw new Error(`${fieldName}은(는) 0 이상의 정수여야 합니다.`);
   }
 
   return parsed;
@@ -61,7 +61,7 @@ export default function CategoriesPage() {
         setCategories(response.items);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Failed to load categories.');
+        setError(err instanceof Error ? err.message : '카테고리 내역을 불러오는데 실패했습니다.');
       } finally {
         if (active) setLoading(false);
       }
@@ -112,7 +112,7 @@ export default function CategoriesPage() {
     setSubmitting(true);
 
     try {
-      const orderIndex = parseOptionalNonNegativeInteger(createOrderIndex, 'Order index');
+      const orderIndex = parseOptionalNonNegativeInteger(createOrderIndex, '정렬 순서');
 
       await createCategory({
         name: createName.trim(),
@@ -123,7 +123,7 @@ export default function CategoriesPage() {
 
       await loadCategories();
       resetCreateFields();
-      setSuccessMessage('Category row added.');
+      setSuccessMessage('카테고리가 추가되었습니다.');
     } catch (err: unknown) {
       if (isApiError(err) && err.fieldErrors) {
         const nextErrors: Record<string, string> = {};
@@ -133,7 +133,7 @@ export default function CategoriesPage() {
         setCreateFieldErrors(nextErrors);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Category creation failed.');
+        setError(err instanceof Error ? err.message : '카테고리 생성에 실패했습니다.');
       }
     } finally {
       setSubmitting(false);
@@ -158,7 +158,7 @@ export default function CategoriesPage() {
     setSubmitting(true);
 
     try {
-      const orderIndex = parseOptionalNonNegativeInteger(editRow.orderIndex, 'Order index');
+      const orderIndex = parseOptionalNonNegativeInteger(editRow.orderIndex, '정렬 순서');
       await patchCategory(categoryId, {
         name: editRow.name.trim(),
         ...(orderIndex != null ? { orderIndex } : {})
@@ -166,7 +166,7 @@ export default function CategoriesPage() {
 
       await loadCategories();
       setEditRow(null);
-      setSuccessMessage('Category row updated.');
+      setSuccessMessage('카테고리 정보가 수정되었습니다.');
     } catch (err: unknown) {
       if (isApiError(err) && err.fieldErrors) {
         const nextErrors: Record<string, string> = {};
@@ -176,7 +176,7 @@ export default function CategoriesPage() {
         setEditFieldErrors(nextErrors);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Category update failed.');
+        setError(err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.');
       }
     } finally {
       setSubmitting(false);
@@ -191,9 +191,9 @@ export default function CategoriesPage() {
     try {
       await patchCategory(category.id, { isActive: !category.isActive });
       await loadCategories();
-      setSuccessMessage('Category status updated.');
+      setSuccessMessage('카테고리 상태가 업데이트되었습니다.');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Category update failed.');
+      setError(err instanceof Error ? err.message : '카테고리 업데이트에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -203,8 +203,8 @@ export default function CategoriesPage() {
     <div className="page-container categories-page management-page">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Library</p>
-          <h1 className="page-title">Category Library</h1>
+          <p className="page-kicker">라이브러리</p>
+          <h1 className="page-title">카테고리 관리</h1>
         </div>
       </div>
 
@@ -214,38 +214,38 @@ export default function CategoriesPage() {
           type="button"
           onClick={() => setActiveTab('EXPENSE')}
         >
-          Expense
+          지출
         </button>
         <button
           className={activeTab === 'INCOME' ? 'active' : ''}
           type="button"
           onClick={() => setActiveTab('INCOME')}
         >
-          Income
+          수입
         </button>
       </div>
 
       <section className="management-overview-grid">
         <article className="card management-metric-card">
-          <span className="page-kicker">Visible Rows</span>
-          <strong>{visibleCategories.length.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">표시된 항목</span>
+          <strong>{visibleCategories.length.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card">
-          <span className="page-kicker">Active</span>
-          <strong>{activeCount.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">활성</span>
+          <strong>{activeCount.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card">
-          <span className="page-kicker">Archived</span>
-          <strong>{archivedCount.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">보관</span>
+          <strong>{archivedCount.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card accent">
-          <span className="page-kicker">Next Order Slot</span>
+          <span className="page-kicker">다음 정렬 순서</span>
           <strong>{Math.max(0, nextOrderIndex).toLocaleString('ko-KR')}</strong>
         </article>
       </section>
 
       {error ? (
-        <StateNotice tone="error" title="Could not update the category library." description={error} compact />
+        <StateNotice tone="error" title="카테고리 라이브러리를 업데이트할 수 없습니다." description={error} compact />
       ) : null}
       {successMessage ? (
         <StateNotice tone="success" title={successMessage} compact />
@@ -255,15 +255,15 @@ export default function CategoriesPage() {
         <section className="card management-create-card">
           <div className="management-toolbar">
             <div>
-              <p className="page-kicker">{activeTab === 'EXPENSE' ? 'Expense Lane' : 'Income Lane'}</p>
-              <h3>Fast Add Row</h3>
+              <p className="page-kicker">{activeTab === 'EXPENSE' ? '지출 카테고리' : '수입 카테고리'}</p>
+              <h3>항목 빠른 추가</h3>
             </div>
           </div>
           <form className="management-create-grid" onSubmit={handleCreateCategory}>
             <label className="field">
-              <span>Category Name</span>
+              <span>카테고리명</span>
               <input
-                aria-label="Category name"
+                aria-label="카테고리명"
                 value={createName}
                 onChange={(event) => setCreateName(event.target.value)}
                 required
@@ -272,9 +272,9 @@ export default function CategoriesPage() {
               {createFieldErrors.name ? <span className="hint error">{createFieldErrors.name}</span> : null}
             </label>
             <label className="field">
-              <span>Order Index</span>
+              <span>정렬 순서</span>
               <input
-                aria-label="Category order index"
+                aria-label="카테고리 정렬 순서"
                 inputMode="numeric"
                 placeholder={String(Math.max(0, nextOrderIndex))}
                 value={createOrderIndex}
@@ -284,22 +284,22 @@ export default function CategoriesPage() {
             </label>
             <div className="management-form-actions">
               <button className="btn btn-primary" type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Create Category'}
+                {submitting ? '생성 중...' : '카테고리 생성'}
               </button>
               <button className="btn" type="button" onClick={resetCreateFields}>
-                Reset
+                초기화
               </button>
             </div>
           </form>
 
           <div className="management-type-strip">
             <article className="management-type-chip">
-              <span>{activeTab === 'EXPENSE' ? 'Expense Lane' : 'Income Lane'}</span>
-              <strong>{visibleCategories.length.toLocaleString('ko-KR')} row(s)</strong>
+              <span>{activeTab === 'EXPENSE' ? '지출 카테고리' : '수입 카테고리'}</span>
+              <strong>{visibleCategories.length.toLocaleString('ko-KR')}개 항목</strong>
             </article>
             <article className="management-type-chip">
-              <span>Archived Rows</span>
-              <strong>{archivedCount.toLocaleString('ko-KR')}</strong>
+              <span>보관된 항목</span>
+              <strong>{archivedCount.toLocaleString('ko-KR')}개</strong>
             </article>
           </div>
         </section>
@@ -307,25 +307,25 @@ export default function CategoriesPage() {
         <section className="card management-main-card">
           <div className="management-toolbar">
             <div>
-              <p className="page-kicker">Dense View</p>
-              <h3>Scan, rename, archive</h3>
+              <p className="page-kicker">상세 목록</p>
+              <h3>조회, 이름 수정, 보관</h3>
             </div>
-            <p className="management-section-note">Rows stay lane-specific so the transaction workspace can scan faster.</p>
+            <p className="management-section-note">수입/지출별로 카테고리가 구분되어 있어 거래 내역 입력 시 더 빠르게 찾을 수 있습니다.</p>
           </div>
 
           {loading ? (
             <StateNotice
               tone="loading"
-              title="Loading category library."
-              description="Active and archived rows are being refreshed."
+              title="카테고리 라이브러리를 불러오는 중입니다."
+              description="활성 및 보관된 항목들을 업데이트하고 있습니다."
             />
           ) : null}
 
           {!loading && visibleCategories.length === 0 ? (
             <StateNotice
               tone="empty"
-              title={`No ${activeTab.toLowerCase()} categories yet.`}
-              description="Add a row on the left to make this lane usable in the ledger workspace."
+              title={`아직 등록된 ${activeTab === 'EXPENSE' ? '지출' : '수입'} 카테고리가 없습니다.`}
+              description="왼쪽에서 새로운 항목을 추가하여 장부에서 사용할 수 있게 만드세요."
             />
           ) : null}
 
@@ -334,11 +334,11 @@ export default function CategoriesPage() {
               <table className="flat-table management-table">
                 <thead>
                   <tr>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Order</th>
-                    <th>Parent</th>
-                    <th>Actions</th>
+                    <th>카테고리</th>
+                    <th>상태</th>
+                    <th>순서</th>
+                    <th>상위</th>
+                    <th>관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -349,10 +349,10 @@ export default function CategoriesPage() {
                         <td>
                           {isEditing ? (
                             <label className="management-inline-stack">
-                              <span className="sr-only">Edit name for {category.name}</span>
+                              <span className="sr-only">{category.name} 이름 수정</span>
                               <input
                                 className="management-inline-input"
-                                aria-label={`Edit name for ${category.name}`}
+                                aria-label={`${category.name} 이름 수정`}
                                 value={editRow.name}
                                 onChange={(event) => setEditRow((current) => (
                                   current ? { ...current, name: event.target.value } : current
@@ -369,18 +369,18 @@ export default function CategoriesPage() {
                         </td>
                         <td>
                           <StatusBadge tone={category.isActive ? 'success' : 'warning'}>
-                            {category.isActive ? 'Active' : 'Archived'}
+                            {category.isActive ? '활성' : '보관됨'}
                           </StatusBadge>
                         </td>
                         <td>
                           {isEditing ? (
                             <label className="management-inline-stack">
-                              <span className="sr-only">Edit order for {category.name}</span>
+                              <span className="sr-only">{category.name} 순서 수정</span>
                               <input
                                 className="management-inline-input"
-                                aria-label={`Edit order for ${category.name}`}
+                                aria-label={`${category.name} 순서 수정`}
                                 inputMode="numeric"
-                                placeholder="auto"
+                                placeholder="자동"
                                 value={editRow.orderIndex}
                                 onChange={(event) => setEditRow((current) => (
                                   current ? { ...current, orderIndex: event.target.value } : current
@@ -389,12 +389,12 @@ export default function CategoriesPage() {
                               {editFieldErrors.orderIndex ? <span className="hint error">{editFieldErrors.orderIndex}</span> : null}
                             </label>
                           ) : (
-                            <span>{category.orderIndex == null ? 'Auto' : category.orderIndex}</span>
+                            <span>{category.orderIndex == null ? '자동' : category.orderIndex}</span>
                           )}
                         </td>
                         <td>
                           <StatusBadge tone="neutral">
-                            {category.parentId == null ? 'Root' : `#${category.parentId}`}
+                            {category.parentId == null ? '최상위' : `#${category.parentId}`}
                           </StatusBadge>
                         </td>
                         <td>
@@ -409,10 +409,10 @@ export default function CategoriesPage() {
                                     void handleSaveEdit(category.id);
                                   }}
                                 >
-                                  Save
+                                  저장
                                 </button>
                                 <button className="btn btn-sm" type="button" onClick={() => setEditRow(null)}>
-                                  Cancel
+                                  취소
                                 </button>
                               </>
                             ) : (
@@ -421,21 +421,21 @@ export default function CategoriesPage() {
                                   className="btn btn-sm"
                                   type="button"
                                   disabled={submitting}
-                                  aria-label={`Edit ${category.name}`}
+                                  aria-label={`${category.name} 수정`}
                                   onClick={() => startEdit(category)}
                                 >
-                                  Edit
+                                  수정
                                 </button>
                                 <button
                                   className="btn btn-sm"
                                   type="button"
                                   disabled={submitting}
-                                  aria-label={`${category.isActive ? 'Archive' : 'Restore'} ${category.name}`}
+                                  aria-label={`${category.isActive ? '보관' : '복구'} ${category.name}`}
                                   onClick={() => {
                                     void handleToggleActive(category);
                                   }}
                                 >
-                                  {category.isActive ? 'Archive' : 'Restore'}
+                                  {category.isActive ? '보관' : '복구'}
                                 </button>
                               </>
                             )}

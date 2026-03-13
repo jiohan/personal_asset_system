@@ -32,7 +32,7 @@ export default function SummaryCards({ from, to }: SummaryCardsProps) {
         setInboxCount(inboxRes.totalElements);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Failed to load summary metrics.');
+        setError(err instanceof Error ? err.message : '요약 지표를 불러오는 중 오류가 발생했습니다.');
         setSummary(null);
         setInboxCount(0);
       } finally {
@@ -49,30 +49,30 @@ export default function SummaryCards({ from, to }: SummaryCardsProps) {
   return (
     <section className="summary-cards-wrap" aria-label="Transactions summary">
       <div className="summary-cards-head">
-        <h2>Summary</h2>
-        <p className="hint">Range: {from} to {to}</p>
+        <h2>요약</h2>
+        <p className="hint">기간: {from} ~ {to}</p>
       </div>
       {error ? <p className="error">{error}</p> : null}
       <div className="summary-cards-grid">
         <article className="summary-card-item">
-          <p className="summary-title">Income</p>
+          <p className="summary-title">총 수입</p>
           <strong className="summary-value text-cyan">{loading || !summary ? '...' : formatKrw(summary.totalIncome)}</strong>
         </article>
         <article className="summary-card-item">
-          <p className="summary-title">Expense</p>
+          <p className="summary-title">총 지출</p>
           <strong className="summary-value">{loading || !summary ? '...' : formatKrw(summary.totalExpense)}</strong>
         </article>
         <article className="summary-card-item">
-          <p className="summary-title">Net Saving</p>
+          <p className="summary-title">순저축액</p>
           <strong className="summary-value">{loading || !summary ? '...' : formatKrw(summary.netSaving)}</strong>
         </article>
         <article className="summary-card-item">
-          <p className="summary-title">Transfer</p>
+          <p className="summary-title">총 이체</p>
           <strong className="summary-value">{loading || !summary ? '...' : formatKrw(summary.transferVolume)}</strong>
         </article>
         <article className="summary-card-item">
-          <p className="summary-title">Inbox Needs Review</p>
-          <strong className="summary-value">{loading ? '...' : `${inboxCount.toLocaleString('ko-KR')} items`}</strong>
+          <p className="summary-title">검토 대기 중</p>
+          <strong className="summary-value">{loading ? '...' : `${inboxCount.toLocaleString('ko-KR')}건`}</strong>
         </article>
       </div>
     </section>

@@ -51,15 +51,15 @@ describe('CategoriesPage', () => {
 
     render(<CategoriesPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Category Library' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '카테고리 관리' })).toBeInTheDocument();
     expect(screen.getByText('Food')).toBeInTheDocument();
     expect(screen.queryByText('Salary')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Income' }));
+    fireEvent.click(screen.getByRole('button', { name: '수입' }));
     expect(await screen.findByText('Salary')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Category name'), { target: { value: 'Bonus' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Category' }));
+    fireEvent.change(screen.getByLabelText('카테고리명'), { target: { value: 'Bonus' } });
+    fireEvent.click(screen.getByRole('button', { name: '카테고리 생성' }));
 
     await waitFor(() => {
       expect(createCategory).toHaveBeenCalledWith({
@@ -68,7 +68,7 @@ describe('CategoriesPage', () => {
         isActive: true
       });
     });
-    expect(await screen.findByText('Category row added.')).toBeInTheDocument();
+    expect(await screen.findByText('카테고리가 추가되었습니다.')).toBeInTheDocument();
   });
 
   it('archives a category row from the utility table', async () => {
@@ -79,12 +79,12 @@ describe('CategoriesPage', () => {
 
     render(<CategoriesPage />);
 
-    await screen.findByRole('heading', { name: 'Category Library' });
-    fireEvent.click(screen.getByRole('button', { name: 'Archive Food' }));
+    await screen.findByRole('heading', { name: '카테고리 관리' });
+    fireEvent.click(screen.getByRole('button', { name: '보관 Food' }));
 
     await waitFor(() => {
       expect(patchCategory).toHaveBeenCalledWith(1, { isActive: false });
     });
-    expect(await screen.findByText('Category status updated.')).toBeInTheDocument();
+    expect(await screen.findByText('카테고리 상태가 업데이트되었습니다.')).toBeInTheDocument();
   });
 });

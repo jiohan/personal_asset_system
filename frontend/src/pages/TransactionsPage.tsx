@@ -1034,345 +1034,348 @@ export default function TransactionsPage() {
     <div className="page-container transactions-page">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Operations</p>
-          <h1 className="page-title">TRANSACTIONS</h1>
+          <p className="page-kicker">운영</p>
+          <h1 className="page-title">거래 내역</h1>
         </div>
-        <button className="btn btn-primary" onClick={openNewDrawer}>+ NEW TRANSACTION</button>
+        <button className="btn btn-primary" onClick={openNewDrawer}>+ 새 거래 추가</button>
       </div>
 
       <SummaryCards from={summaryFrom} to={summaryTo} />
 
-      <QuickEntryComposer
-        accounts={accounts}
-        categories={categories}
-        title="Fast Ledger Entry"
-        description="Use the inline path for daily capture. Open the side sheet only when you need full detail editing."
-        actionLabel="Save Quick Entry"
-        onSaved={() => loadTransactions(txPage)}
-        onOpenFullForm={openNewDrawer}
-        suggestedCategoryIds={quickEntryCategoryIds}
-      />
-
-      <div className="filters-bar card">
-        <div className="filter-chips">
-          <div className="chip-group">
-            <button className={`chip ${!inboxTab ? 'active' : ''}`} onClick={() => toggleInbox(false)}>All</button>
-            <button className={`chip ${inboxTab ? 'active' : ''}`} onClick={() => toggleInbox(true)}>Inbox</button>
-          </div>
-
-          <div className="chip-group">
-            <span className="chip-group-label">Type</span>
-            <button className={`chip ${filterType === '' ? 'active' : ''}`} onClick={() => updateSearchParam('type', undefined)}>All</button>
-            <button className={`chip ${filterType === 'INCOME' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'INCOME')}>Income</button>
-            <button className={`chip ${filterType === 'EXPENSE' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'EXPENSE')}>Expense</button>
-            <button className={`chip ${filterType === 'TRANSFER' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'TRANSFER')}>Transfer</button>
-          </div>
-
-          <div className="chip-group">
-            <span className="chip-group-label">Account</span>
-            <button className={`chip ${filterAccountId === '' ? 'active' : ''}`} onClick={() => updateSearchParam('accountId', undefined)}>All</button>
-            {activeAccounts.map((a) => (
-              <button
-                key={a.id}
-                className={`chip ${filterAccountId === String(a.id) ? 'active' : ''}`}
-                onClick={() => updateSearchParam('accountId', String(a.id))}
-              >
-                {a.name}
-              </button>
-            ))}
-          </div>
-
-          <button className="chip" onClick={() => setAdvancedFiltersOpen((v) => !v)}>
-            {advancedFiltersOpen ? 'Hide Filters' : 'More Filters'}
-          </button>
-        </div>
-
-        {advancedFiltersOpen && (
-          <div className="filters-advanced">
-            <label className="field-inline">
-              <span>Category</span>
-              <select value={filterCategoryId} onChange={(e) => updateSearchParam('categoryId', e.target.value || undefined)}>
-                <option value="">All Categories</option>
-                {selectableFilterCategories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field-inline">
-              <span>Search</span>
-              <input
-                placeholder="Search description..."
-                value={filterQuery}
-                onChange={(e) => updateSearchParam('q', e.target.value || undefined, { replace: true })}
-              />
-            </label>
-
-            <label className="field-inline">
-              <span>From</span>
-              <input
-                type="date"
-                value={filterFrom}
-                onChange={(e) => updateSearchParam('from', e.target.value || undefined, { replace: true })}
-                aria-label="From"
-              />
-            </label>
-
-            <label className="field-inline">
-              <span>To</span>
-              <input
-                type="date"
-                value={filterTo}
-                onChange={(e) => updateSearchParam('to', e.target.value || undefined, { replace: true })}
-                aria-label="To"
-              />
-            </label>
-
-            <label className="field-inline">
-              <span>Sort</span>
-              <select value={txSort} onChange={(e) => updateSearchParam('sort', e.target.value || undefined)}>
-                <option value="txDate,desc">Date (newest)</option>
-                <option value="txDate,asc">Date (oldest)</option>
-                <option value="amount,desc">Amount (high)</option>
-                <option value="amount,asc">Amount (low)</option>
-              </select>
-            </label>
-          </div>
-        )}
-      </div>
-
-      {error ? <p className="error">{error}</p> : null}
-      {bulkActionMessage ? <p className="hint">{bulkActionMessage}</p> : null}
-
       <div className={`transactions-workspace ${drawerOpen ? 'detail-open' : ''}`}>
-        <div className="card table-container transactions-master">
-          {inboxTab && !loading && visibleTransactions.length > 0 && (
-            <div className="inbox-bulk-bar">
-              <label className="toggle-inline">
-                <input
-                  ref={selectAllInboxRef}
-                  type="checkbox"
-                  checked={allInboxRowsSelected}
-                  onChange={(e) => handleBulkSelectAll(e.target.checked)}
-                />
-                Select page ({selectedInboxIds.size}/{inboxRowIds.length})
-              </label>
-              <button
-                className="btn btn-sm"
-                type="button"
-                onClick={() => { void handleBulkClear(); }}
-                disabled={bulkClearing || selectedInboxIds.size === 0}
-              >
-                {bulkClearing ? 'Clearing...' : 'Mark as Cleared'}
+        <div className="transactions-master">
+          <div className="card transactions-composer">
+            <QuickEntryComposer
+              accounts={accounts}
+              categories={categories}
+              title="간편 기입"
+              description="매일 발생하는 거래를 빠르게 등록하세요. 상세 내용은 사이드 패널에서 편집할 수 있습니다."
+              actionLabel="거래 등록"
+              onSaved={() => loadTransactions(txPage)}
+              onOpenFullForm={openNewDrawer}
+              suggestedCategoryIds={quickEntryCategoryIds}
+            />
+          </div>
+
+          <div className="filters-bar card transactions-filters">
+            <div className="filter-chips">
+              <div className="chip-group">
+                <button className={`chip ${!inboxTab ? 'active' : ''}`} onClick={() => toggleInbox(false)}>전체</button>
+                <button className={`chip ${inboxTab ? 'active' : ''}`} onClick={() => toggleInbox(true)}>인박스</button>
+              </div>
+
+              <div className="chip-group">
+                <span className="chip-group-label">유형</span>
+                <button className={`chip ${filterType === '' ? 'active' : ''}`} onClick={() => updateSearchParam('type', undefined)}>전체</button>
+                <button className={`chip ${filterType === 'INCOME' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'INCOME')}>수입</button>
+                <button className={`chip ${filterType === 'EXPENSE' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'EXPENSE')}>지출</button>
+                <button className={`chip ${filterType === 'TRANSFER' ? 'active' : ''}`} onClick={() => updateSearchParam('type', 'TRANSFER')}>이체</button>
+              </div>
+
+              <div className="chip-group">
+                <span className="chip-group-label">계좌</span>
+                <button className={`chip ${filterAccountId === '' ? 'active' : ''}`} onClick={() => updateSearchParam('accountId', undefined)}>전체</button>
+                {activeAccounts.map((a) => (
+                  <button
+                    key={a.id}
+                    className={`chip ${filterAccountId === String(a.id) ? 'active' : ''}`}
+                    onClick={() => updateSearchParam('accountId', String(a.id))}
+                  >
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+
+              <button className="chip" onClick={() => setAdvancedFiltersOpen((v) => !v)}>
+                {advancedFiltersOpen ? '필터 접기' : '상세 필터'}
               </button>
             </div>
-          )}
 
-          {loading ? <p>Loading transactions...</p> : null}
-          {!loading && visibleTransactions.length === 0 ? <p className="hint">No transactions match your filters.</p> : null}
+            {advancedFiltersOpen && (
+              <div className="filters-advanced">
+                <label className="field-inline">
+                  <span>카테고리</span>
+                  <select value={filterCategoryId} onChange={(e) => updateSearchParam('categoryId', e.target.value || undefined)}>
+                    <option value="">모든 카테고리</option>
+                    {selectableFilterCategories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name} ({c.type === 'INCOME' ? '수입' : '지출'})</option>
+                    ))}
+                  </select>
+                </label>
 
-          {!loading && visibleTransactions.length > 0 && (
-            <div className="transaction-group-list">
-              {groupedTransactions.map((group) => (
-                <section key={group.date} className="tx-date-group">
-                  <header className="tx-date-header">
-                    <h3>{group.label}</h3>
-                    <div className="tx-date-summary">
-                      <p className={`tx-date-total ${group.dayTotal > 0 ? 'positive' : group.dayTotal < 0 ? 'negative' : 'neutral'}`}>
-                        {formatSignedKrw(group.dayTotal)}
-                      </p>
-                      <p className="tx-date-subtotal">
-                        <span className="expense">지출 -{formatKrw(group.dayExpense)}</span>
-                        <span className="income">수입 +{formatKrw(group.dayIncome)}</span>
-                        {group.dayTransfer > 0 ? <span className="transfer">이동 ↔{formatKrw(group.dayTransfer)}</span> : null}
-                      </p>
-                    </div>
-                  </header>
+                <label className="field-inline">
+                  <span>검색</span>
+                  <input
+                    placeholder="내용 검색..."
+                    value={filterQuery}
+                    onChange={(e) => updateSearchParam('q', e.target.value || undefined, { replace: true })}
+                  />
+                </label>
 
-                  <ul className="tx-items">
-                    {group.items.map((tx) => {
-                      const account = tx.accountId != null ? accountById.get(tx.accountId) : undefined;
-                      const fromAccount = tx.fromAccountId != null ? accountById.get(tx.fromAccountId) : undefined;
-                      const toAccount = tx.toAccountId != null ? accountById.get(tx.toAccountId) : undefined;
+                <label className="field-inline">
+                  <span>시작일</span>
+                  <input
+                    type="date"
+                    value={filterFrom}
+                    onChange={(e) => updateSearchParam('from', e.target.value || undefined, { replace: true })}
+                    aria-label="시작일"
+                  />
+                </label>
 
-                      const categoryLabel = tx.type === 'TRANSFER'
-                        ? '이체'
-                        : (tx.categoryId != null ? (categoryNameById.get(tx.categoryId) ?? '미분류') : '미분류');
+                <label className="field-inline">
+                  <span>종료일</span>
+                  <input
+                    type="date"
+                    value={filterTo}
+                    onChange={(e) => updateSearchParam('to', e.target.value || undefined, { replace: true })}
+                    aria-label="종료일"
+                  />
+                </label>
 
-                      const accountLabel = tx.type === 'TRANSFER'
-                        ? `${fromAccount?.name ?? 'Unknown'} -> ${toAccount?.name ?? 'Unknown'}`
-                        : `${account?.name ?? 'Unknown'}${account ? ` (${accountTypeLabel(account.type)})` : ''}`;
+                <label className="field-inline">
+                  <span>정렬</span>
+                  <select value={txSort} onChange={(e) => updateSearchParam('sort', e.target.value || undefined)}>
+                    <option value="txDate,desc">날짜 (최신순)</option>
+                    <option value="txDate,asc">날짜 (오래된순)</option>
+                    <option value="amount,desc">금액 (높은순)</option>
+                    <option value="amount,asc">금액 (낮은순)</option>
+                  </select>
+                </label>
+              </div>
+            )}
+          </div>
 
-                      const displayTitle = tx.description.trim() !== ''
-                        ? tx.description
-                        : (tx.type === 'TRANSFER'
-                          ? `${fromAccount?.name ?? 'Unknown'} -> ${toAccount?.name ?? 'Unknown'}`
-                          : categoryLabel);
 
-                      const amountText = tx.type === 'TRANSFER'
-                        ? `↔${tx.amount.toLocaleString('ko-KR')} KRW`
-                        : `${tx.type === 'INCOME' ? '+' : '-'}${tx.amount.toLocaleString('ko-KR')} KRW`;
+          {error ? <p className="error">{error}</p> : null}
+          {bulkActionMessage ? <p className="hint">{bulkActionMessage}</p> : null}
 
-                      return (
-                        <li
-                          key={tx.id}
-                          onClick={() => openEditDrawer(tx)}
-                          className={`tx-item clickable-row ${editingTxId === tx.id ? 'active-row' : ''}`}
-                        >
-                          {inboxTab ? (
-                            <div
-                              className="tx-item-select"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedInboxIds.has(tx.id)}
-                                onChange={(e) => {
-                                  const checked = e.target.checked;
-                                  setSelectedInboxIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (checked) next.add(tx.id);
-                                    else next.delete(tx.id);
-                                    return next;
-                                  });
-                                }}
-                                aria-label={`Select transaction ${tx.id}`}
-                              />
-                            </div>
-                          ) : null}
+          <div className="card table-container">
+            {inboxTab && !loading && visibleTransactions.length > 0 && (
+              <div className="inbox-bulk-bar">
+                <label className="toggle-inline">
+                  <input
+                    ref={selectAllInboxRef}
+                    type="checkbox"
+                    checked={allInboxRowsSelected}
+                    onChange={(e) => handleBulkSelectAll(e.target.checked)}
+                  />
+                  페이지 선택 ({selectedInboxIds.size}/{inboxRowIds.length})
+                </label>
+                <button
+                  className="btn btn-sm"
+                  type="button"
+                  onClick={() => { void handleBulkClear(); }}
+                  disabled={bulkClearing || selectedInboxIds.size === 0}
+                >
+                  {bulkClearing ? '정리 중...' : '검토 완료로 표시'}
+                </button>
+              </div>
+            )}
 
-                          <div className="tx-item-main">
-                            <div className="tx-item-top">
-                              <div className="tx-item-title-line">
-                                <p className="tx-item-title">{displayTitle}</p>
-                                {tx.needsReview ? <span className="tx-review-badge">검토</span> : null}
+            {loading ? <p>거래 내역을 불러오는 중...</p> : null}
+            {!loading && visibleTransactions.length === 0 ? <p className="hint">조건에 맞는 거래 내역이 없습니다.</p> : null}
+
+            {!loading && visibleTransactions.length > 0 && (
+              <div className="transaction-group-list">
+                {groupedTransactions.map((group) => (
+                  <section key={group.date} className="tx-date-group">
+                    <header className="tx-date-header">
+                      <h3>{group.label}</h3>
+                      <div className="tx-date-summary">
+                        <p className={`tx-date-total ${group.dayTotal > 0 ? 'positive' : group.dayTotal < 0 ? 'negative' : 'neutral'}`}>
+                          {formatSignedKrw(group.dayTotal)}
+                        </p>
+                        <p className="tx-date-subtotal">
+                          <span className="expense">지출 -{formatKrw(group.dayExpense)}</span>
+                          <span className="income">수입 +{formatKrw(group.dayIncome)}</span>
+                          {group.dayTransfer > 0 ? <span className="transfer">이동 ↔{formatKrw(group.dayTransfer)}</span> : null}
+                        </p>
+                      </div>
+                    </header>
+
+                    <ul className="tx-items">
+                      {group.items.map((tx) => {
+                        const account = tx.accountId != null ? accountById.get(tx.accountId) : undefined;
+                        const fromAccount = tx.fromAccountId != null ? accountById.get(tx.fromAccountId) : undefined;
+                        const toAccount = tx.toAccountId != null ? accountById.get(tx.toAccountId) : undefined;
+
+                        const categoryLabel = tx.type === 'TRANSFER'
+                          ? '이체'
+                          : (tx.categoryId != null ? (categoryNameById.get(tx.categoryId) ?? '미분류') : '미분류');
+
+                        const accountLabel = tx.type === 'TRANSFER'
+                          ? `${fromAccount?.name ?? '지원되지 않는 계좌'} -> ${toAccount?.name ?? '지원되지 않는 계좌'}`
+                          : `${account?.name ?? '알 수 없는 계좌'}${account ? ` (${accountTypeLabel(account.type)})` : ''}`;
+
+                        const displayTitle = tx.description.trim() !== ''
+                          ? tx.description
+                          : (tx.type === 'TRANSFER'
+                            ? `${fromAccount?.name ?? '지원되지 않는 계좌'} -> ${toAccount?.name ?? '지원되지 않는 계좌'}`
+                            : categoryLabel);
+
+                        const amountText = tx.type === 'TRANSFER'
+                          ? `↔${tx.amount.toLocaleString('ko-KR')} KRW`
+                          : `${tx.type === 'INCOME' ? '+' : '-'}${tx.amount.toLocaleString('ko-KR')} KRW`;
+
+                        return (
+                          <li
+                            key={tx.id}
+                            onClick={() => openEditDrawer(tx)}
+                            className={`tx-item clickable-row ${editingTxId === tx.id ? 'active-row' : ''}`}
+                          >
+                            {inboxTab ? (
+                              <div
+                                className="tx-item-select"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedInboxIds.has(tx.id)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setSelectedInboxIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (checked) next.add(tx.id);
+                                      else next.delete(tx.id);
+                                      return next;
+                                    });
+                                  }}
+                                  aria-label={`Select transaction ${tx.id}`}
+                                />
                               </div>
-                              <p className={`tx-item-amount ${tx.type.toLowerCase()}`}>
-                                {amountText}
-                              </p>
-                            </div>
-                            <p className="tx-item-meta">{categoryLabel} · {accountLabel}</p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          )}
+                            ) : null}
 
-          <div className="pagination">
-            <button className="btn" disabled={!txHasPrev} onClick={() => goToPage(txPage - 1)}>Prev</button>
-            <span>Page {txPage + 1}</span>
-            <button className="btn" disabled={!txHasNext} onClick={() => goToPage(txPage + 1)}>Next</button>
+                            <div className="tx-item-main">
+                              <div className="tx-item-top">
+                                <div className="tx-item-title-line">
+                                  <p className="tx-item-title">{displayTitle}</p>
+                                  {tx.needsReview ? <span className="tx-review-badge">검토</span> : null}
+                                </div>
+                                <p className={`tx-item-amount ${tx.type.toLowerCase()}`}>
+                                  {amountText}
+                                </p>
+                              </div>
+                              <p className="tx-item-meta">{categoryLabel} · {accountLabel}</p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            )}
+
+            <div className="pagination">
+              <button className="btn" disabled={!txHasPrev} onClick={() => goToPage(txPage - 1)}>이전</button>
+              <span>페이지 {txPage + 1}</span>
+              <button className="btn" disabled={!txHasNext} onClick={() => goToPage(txPage + 1)}>다음</button>
+            </div>
           </div>
         </div>
 
         <aside className={`transaction-detail-sheet ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen}>
           <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
-              <h3>{editingTxId ? 'EDIT TRANSACTION' : 'ADD NEW TRANSACTION'}</h3>
+              <h3>{editingTxId ? '내역 편집' : '새 거래 추가'}</h3>
               <button className="btn-icon" onClick={closeDrawer}>✕</button>
             </div>
             <div className="drawer-body">
               <form onSubmit={handleSaveTransaction}>
                 <div className="form-group-type">
                   <button type="button" className={`btn-type ${txType === 'INCOME' ? 'active' : ''}`} onClick={() => setTxType('INCOME')} disabled={!!editingTxId}>
-                    INCOME
+                    수입
                   </button>
                   <button type="button" className={`btn-type ${txType === 'EXPENSE' ? 'active' : ''}`} onClick={() => setTxType('EXPENSE')} disabled={!!editingTxId}>
-                    EXPENSE
+                    지출
                   </button>
                   <button
                     type="button"
                     className={`btn-type ${txType === 'TRANSFER' ? 'active' : ''}`}
                     onClick={() => setTxType('TRANSFER')}
                     disabled={!!editingTxId || activeAccounts.length < 2}
-                    title={activeAccounts.length < 2 ? 'Create at least two active accounts to add a transfer.' : undefined}
+                    title={activeAccounts.length < 2 ? '이체를 추가하려면 최소 두 개의 활성 계좌가 필요합니다.' : undefined}
                   >
-                    TRANSFER
+                    이체
                   </button>
                 </div>
 
                 <label className="field">
-                  <span>Amount</span>
-                  <input type="number" min="1" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} required aria-label="Amount" />
-                  {formFieldErrors.amount ? <span className="hint error">{formFieldErrors.amount}</span> : null}
+                  <span>금액</span>
+                  <input type="number" min="1" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} required aria-label="금액" />
+                  {formFieldErrors.amount ? <span className="hint error">금액을 입력해주세요.</span> : null}
                 </label>
 
                 {txType !== 'TRANSFER' ? (
                   <label className="field">
-                    <span>Account</span>
-                    <select value={txAccountId} onChange={(e) => setTxAccountId(e.target.value)} required disabled={!!editingTxId} aria-label="Account">
-                      <option value="">Select Account</option>
+                    <span>계좌</span>
+                    <select value={txAccountId} onChange={(e) => setTxAccountId(e.target.value)} required disabled={!!editingTxId} aria-label="계좌">
+                      <option value="">계좌 선택</option>
                       {(editingTxId ? accounts : activeAccounts).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
-                    {activeAccounts.length === 0 && !editingTxId ? <span className="hint error">You need to create an active account first.</span> : null}
-                    {formFieldErrors.accountId ? <span className="hint error">{formFieldErrors.accountId}</span> : null}
+                    {activeAccounts.length === 0 && !editingTxId ? <span className="hint error">먼저 활성 계좌를 생성해야 합니다.</span> : null}
+                    {formFieldErrors.accountId ? <span className="hint error">계좌를 선택해주세요.</span> : null}
                   </label>
                 ) : (
                   <div className="transfer-inline">
                     <label className="field">
-                      <span>From</span>
-                      <select aria-label="From Account" value={txFromAccountId} onChange={(e) => setTxFromAccountId(e.target.value)} required>
-                        <option value="">Select Account</option>
+                      <span>출금 계좌</span>
+                      <select aria-label="출금 계좌" value={txFromAccountId} onChange={(e) => setTxFromAccountId(e.target.value)} required>
+                        <option value="">선택</option>
                         {activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                       </select>
-                      {formFieldErrors.fromAccountId ? <span className="hint error">{formFieldErrors.fromAccountId}</span> : null}
                     </label>
 
-                    <button type="button" className="swap-btn" onClick={swapTransferAccounts} aria-label="Swap accounts">⇄</button>
+                    <button type="button" className="swap-btn" onClick={swapTransferAccounts} aria-label="계좌 전환">⇄</button>
 
                     <label className="field">
-                      <span>To</span>
-                      <select aria-label="To Account" value={txToAccountId} onChange={(e) => setTxToAccountId(e.target.value)} required>
-                        <option value="">Select Account</option>
+                      <span>입금 계좌</span>
+                      <select aria-label="입금 계좌" value={txToAccountId} onChange={(e) => setTxToAccountId(e.target.value)} required>
+                        <option value="">선택</option>
                         {activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                       </select>
-                      {formFieldErrors.toAccountId ? <span className="hint error">{formFieldErrors.toAccountId}</span> : null}
                     </label>
                   </div>
                 )}
 
                 {txType !== 'TRANSFER' ? (
                   <CreatableCombobox
-                    label="Category"
+                    label="카테고리"
                     value={txCategoryId}
                     options={categoryOptions}
                     recentIds={recentCategoryIds}
                     frequentIds={frequentCategoryIds}
                     onChange={handleCategorySelect}
                     onCreate={handleCreateCategory}
-                    placeholder="Select or type category"
+                    placeholder="카테고리 선택 또는 입력"
                     errorText={formFieldErrors.categoryId}
                   />
                 ) : null}
 
                 <label className="field">
-                  <span>Date</span>
-                  <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} required disabled={!!editingTxId} aria-label="Date" />
+                  <span>날짜</span>
+                  <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} required disabled={!!editingTxId} aria-label="날짜" />
                 </label>
 
                 <label className="field">
-                  <span>Description</span>
-                  <input value={txDescription} onChange={(e) => setTxDescription(e.target.value)} aria-label="Description" />
+                  <span>내용</span>
+                  <input value={txDescription} onChange={(e) => setTxDescription(e.target.value)} aria-label="내용" />
                 </label>
 
                 {txType !== 'TRANSFER' ? (
                   <div className="more-options-wrap">
                     <button type="button" className="btn btn-sm" onClick={() => setShowMoreOptions((v) => !v)}>
-                      {showMoreOptions ? 'Hide More Options' : 'More Options'}
+                      {showMoreOptions ? '상세 옵션 숨기기' : '상세 옵션 표시'}
                     </button>
 
                     {showMoreOptions ? (
                       <div className="more-options-panel">
                         <label className="toggle-inline mt-2">
-                          <input type="checkbox" checked={effectiveNeedsReview} onChange={(e) => setTxNeedsReview(e.target.checked)} disabled={categoryIsEmpty} aria-label="Needs Review" />
-                          Needs Review
+                          <input type="checkbox" checked={effectiveNeedsReview} onChange={(e) => setTxNeedsReview(e.target.checked)} disabled={categoryIsEmpty} aria-label="검토 필요" />
+                          검토 필요
                         </label>
 
-                        {categoryIsEmpty ? <p className="hint">Uncategorized transactions are always stored as <strong>Needs Review</strong>.</p> : null}
+                        {categoryIsEmpty ? <p className="hint">카테고리가 없는 거래는 항상 <strong>검토 필요</strong> 상태로 저장됩니다.</p> : null}
 
                         {txType === 'EXPENSE' ? (
                           <label className="toggle-inline">
@@ -1380,9 +1383,9 @@ export default function TransactionsPage() {
                               type="checkbox"
                               checked={txExcludeFromReports}
                               onChange={(e) => setTxExcludeFromReports(e.target.checked)}
-                              aria-label="Exclude from reports"
+                              aria-label="보고서 제외"
                             />
-                            Exclude from reports
+                            보고서 제외
                           </label>
                         ) : null}
                       </div>
@@ -1399,7 +1402,7 @@ export default function TransactionsPage() {
                       || (!editingTxId && (txType === 'TRANSFER' ? activeAccounts.length < 2 : activeAccounts.length === 0))
                     }
                   >
-                    {submitting ? 'SAVING...' : 'COMMIT ENTRY'}
+                    {submitting ? '저장 중...' : '거래 내역 저장'}
                   </button>
                   {editingTxId ? (
                     <button
@@ -1408,7 +1411,7 @@ export default function TransactionsPage() {
                       onClick={() => { void handleDelete(editingTxId); }}
                       disabled={submitting}
                     >
-                      DELETE
+                      삭제
                     </button>
                   ) : null}
                 </div>
@@ -1420,12 +1423,14 @@ export default function TransactionsPage() {
 
       {drawerOpen ? <button className="transaction-drawer-backdrop" onClick={closeDrawer} aria-label="Close side sheet" /> : null}
 
-      {pendingDelete ? (
-        <div className="tx-snackbar" role="status" aria-live="polite">
-          <span>Deleted · Undo ({pendingCountdownSeconds}s)</span>
-          <button className="btn btn-sm" type="button" onClick={handleUndoDelete}>Undo</button>
-        </div>
-      ) : null}
-    </div>
+      {
+        pendingDelete ? (
+          <div className="tx-snackbar" role="status" aria-live="polite">
+            <span>삭제되었습니다 · 실행 취소 ({pendingCountdownSeconds}초)</span>
+            <button className="btn btn-sm" type="button" onClick={handleUndoDelete}>실행 취소</button>
+          </div>
+        ) : null
+      }
+    </div >
   );
 }

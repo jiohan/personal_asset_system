@@ -133,8 +133,8 @@ export default function DashboardPage() {
     <div className="page-container dashboard-page">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Morning Review</p>
-          <h1 className="page-title">Control Center</h1>
+          <p className="page-kicker">아침 브리핑</p>
+          <h1 className="page-title">컨트롤 센터</h1>
         </div>
       </div>
 
@@ -144,8 +144,8 @@ export default function DashboardPage() {
         <section className="card dashboard-hero-card">
           <div className="dashboard-hero-top">
             <div>
-              <p className="page-kicker">This Month</p>
-              <h2>Net Cashflow</h2>
+              <p className="page-kicker">이번 달</p>
+              <h2>순 현금흐름</h2>
             </div>
             <span className={`dashboard-hero-pill ${(summary?.netSaving ?? 0) >= 0 ? 'positive' : 'negative'}`}>
               {loading || !summary ? '...' : formatSignedKrw(summary.netSaving)}
@@ -158,19 +158,19 @@ export default function DashboardPage() {
 
           <div className="dashboard-kpi-row">
             <article className="dashboard-kpi">
-              <span>Income</span>
+              <span>수입</span>
               <strong className="kpi-positive">{loading || !summary ? '...' : `${summary.totalIncome.toLocaleString('ko-KR')} KRW`}</strong>
             </article>
             <article className="dashboard-kpi">
-              <span>Expense</span>
+              <span>지출</span>
               <strong>{loading || !summary ? '...' : `${summary.totalExpense.toLocaleString('ko-KR')} KRW`}</strong>
             </article>
             <article className="dashboard-kpi">
-              <span>Transfer</span>
+              <span>이체 합계</span>
               <strong>{loading || !summary ? '...' : `${summary.transferVolume.toLocaleString('ko-KR')} KRW`}</strong>
             </article>
             <article className="dashboard-kpi">
-              <span>Live Balance</span>
+              <span>실시간 잔액</span>
               <strong>{loading ? '...' : `${currentBalanceTotal.toLocaleString('ko-KR')} KRW`}</strong>
             </article>
           </div>
@@ -178,11 +178,11 @@ export default function DashboardPage() {
           <div className="dashboard-trend-panel">
             <div className="dashboard-panel-head">
               <div>
-                <h3>30-Day Rhythm</h3>
-                <p className="hint">Positive days stay cyan. Negative days stay quiet.</p>
+                <h3>30일간의 리듬</h3>
+                <p className="hint">양의 흐름일 때는 선명하게, 음의 흐름일 때는 차분하게 표시됩니다.</p>
               </div>
             </div>
-            <SparkBars items={sparkItems} emptyLabel="No cashflow trend yet." />
+            <SparkBars items={sparkItems} emptyLabel="아직 현금흐름 데이터가 없습니다." />
           </div>
         </section>
 
@@ -190,9 +190,9 @@ export default function DashboardPage() {
           <QuickEntryComposer
             accounts={accounts}
             categories={categories}
-            title="Quick Entry"
-            description="Amount -> merchant -> account/category. Use it for the fast path, then clean up inbox."
-            actionLabel="Record Entry"
+            title="빠른 입력"
+            description="금액 -> 거래처 -> 계좌/카테고리 순으로 빠르게 입력하고 나중에 정리하세요."
+            actionLabel="등록하기"
             onSaved={loadDashboard}
             suggestedCategoryIds={suggestedCategoryIds}
           />
@@ -200,23 +200,23 @@ export default function DashboardPage() {
           <section className="card dashboard-inbox-card">
             <div className="dashboard-panel-head">
               <div>
-                <p className="page-kicker">Inbox</p>
-                <h3>Needs Review</h3>
+                <p className="page-kicker">인박스</p>
+                <h3>검토 필요</h3>
               </div>
               <NavLink to="/transactions?tab=inbox" className="btn btn-primary">
-                Open Inbox
+                인박스 열기
               </NavLink>
             </div>
 
-            {loading ? <p className="hint">Loading inbox queue...</p> : null}
-            {!loading && inboxTransactions.length === 0 ? <p className="hint">Inbox is clear. New uncategorized rows will appear here.</p> : null}
+            {loading ? <p className="hint">항목을 불러오는 중...</p> : null}
+            {!loading && inboxTransactions.length === 0 ? <p className="hint">인박스가 비어있습니다. 카테고리가 미지정된 내역이 여기에 표시됩니다.</p> : null}
 
             {!loading && inboxTransactions.length > 0 ? (
               <ul className="dashboard-inbox-list">
                 {inboxTransactions.map((tx) => (
                   <li key={tx.id}>
                     <div>
-                      <strong>{tx.description.trim() || 'Untitled transaction'}</strong>
+                      <strong>{tx.description.trim() || '미지정 거래'}</strong>
                       <p className="hint">
                         {tx.txDate} · {transactionAccountLabel(tx, accountNameById)}
                       </p>
@@ -237,16 +237,16 @@ export default function DashboardPage() {
         <section className="card">
           <div className="dashboard-panel-head">
             <div>
-              <p className="page-kicker">Recent Ledger</p>
-              <h3>Latest Transactions</h3>
+              <p className="page-kicker">최근 기록</p>
+              <h3>최신 거래 내역</h3>
             </div>
             <NavLink to="/transactions" className="btn">
-              Open Workspace
+              워크스페이스 열기
             </NavLink>
           </div>
 
-          {loading ? <p className="hint">Loading recent transactions...</p> : null}
-          {!loading && recentTransactions.length === 0 ? <p className="hint">No recent transactions.</p> : null}
+          {loading ? <p className="hint">데이터를 불러오는 중...</p> : null}
+          {!loading && recentTransactions.length === 0 ? <p className="hint">최근 거래 내역이 없습니다.</p> : null}
 
           {!loading && recentTransactions.length > 0 ? (
             <ul className="dashboard-inbox-list">
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 return (
                   <li key={tx.id}>
                     <div>
-                      <strong>{tx.description.trim() || 'Untitled transaction'}</strong>
+                      <strong>{tx.description.trim() || '미지정 거래'}</strong>
                       <p className="hint">
                         {tx.txDate} · {categoryName} · {transactionAccountLabel(tx, accountNameById)}
                       </p>
@@ -276,16 +276,16 @@ export default function DashboardPage() {
         <section className="card dashboard-balance-card">
           <div className="dashboard-panel-head">
             <div>
-              <p className="page-kicker">Accounts</p>
-              <h3>Active Balance Lanes</h3>
+              <p className="page-kicker">계좌</p>
+              <h3>활성 자산 현황</h3>
             </div>
             <NavLink to="/accounts" className="btn">
-              Manage Accounts
+              계좌 관리
             </NavLink>
           </div>
 
-          {loading ? <p className="hint">Loading accounts...</p> : null}
-          {!loading && activeAccounts.length === 0 ? <p className="hint">Create an account to start tracking balances.</p> : null}
+          {loading ? <p className="hint">계좌 정보를 불러오는 중...</p> : null}
+          {!loading && activeAccounts.length === 0 ? <p className="hint">계좌를 생성하여 자산 관리를 시작하세요.</p> : null}
 
           {!loading && activeAccounts.length > 0 ? (
             <ul className="dashboard-balance-list">

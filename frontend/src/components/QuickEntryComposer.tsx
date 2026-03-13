@@ -23,7 +23,7 @@ function parsePositiveInteger(input: string): number {
   const normalized = input.replace(/[^\d-]/g, '').trim();
   const value = Number(normalized);
   if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
-    throw new Error('Amount must be a positive integer.');
+    throw new Error('금액은 0보다 큰 정수여야 합니다.');
   }
   return value;
 }
@@ -130,7 +130,7 @@ export default function QuickEntryComposer({
       const parsedAmount = parsePositiveInteger(amount);
       const parsedAccountId = Number(accountId);
       if (!Number.isInteger(parsedAccountId) || parsedAccountId <= 0) {
-        throw new Error('Account is required.');
+        throw new Error('계좌를 선택해 주세요.');
       }
 
       const parsedCategoryId = categoryId ? Number(categoryId) : null;
@@ -157,7 +157,7 @@ export default function QuickEntryComposer({
         setFieldErrors(next);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Quick entry failed.');
+        setError(err instanceof Error ? err.message : '빠른 등록에 실패했습니다.');
       }
     } finally {
       setSaving(false);
@@ -168,12 +168,12 @@ export default function QuickEntryComposer({
     <section className="card quick-entry-card" aria-label={title} style={{ padding: '20px' }}>
       <div className="quick-entry-head">
         <div>
-          <p className="page-kicker">Quick Entry</p>
+          <p className="page-kicker">빠른 등록</p>
           <h3>{title}</h3>
         </div>
         {onOpenFullForm ? (
           <button className="btn" type="button" onClick={onOpenFullForm}>
-            Open Full Form
+            상세 입력 폼 열기
           </button>
         ) : null}
       </div>
@@ -184,10 +184,10 @@ export default function QuickEntryComposer({
         <div className="quick-entry-step">
           <span className="quick-entry-index">1</span>
           <label className="field">
-            <span>Amount</span>
+            <span>금액</span>
             <input
               ref={amountRef}
-              aria-label="Quick Entry Amount"
+              aria-label="빠른 등록 금액"
               inputMode="numeric"
               placeholder="12500"
               value={amount}
@@ -201,11 +201,11 @@ export default function QuickEntryComposer({
         <div className="quick-entry-step">
           <span className="quick-entry-index">2</span>
           <label className="field">
-            <span>Merchant / Note</span>
+            <span>거래처 / 메모</span>
             <input
               ref={merchantRef}
-              aria-label="Quick Entry Merchant"
-              placeholder="Coffee, lunch, payroll..."
+              aria-label="빠른 등록 내용"
+              placeholder="커피, 점심, 월급..."
               value={merchant}
               onChange={(event) => setMerchant(event.target.value)}
               onKeyDown={(event) => moveFocusOnEnter(event, () => accountRef.current?.focus())}
@@ -222,14 +222,14 @@ export default function QuickEntryComposer({
               className={`chip ${txType === 'EXPENSE' ? 'active' : ''}`}
               onClick={() => setTxType('EXPENSE')}
             >
-              Expense
+              지출
             </button>
             <button
               type="button"
               className={`chip ${txType === 'INCOME' ? 'active' : ''}`}
               onClick={() => setTxType('INCOME')}
             >
-              Income
+              수입
             </button>
           </div>
 
@@ -237,15 +237,15 @@ export default function QuickEntryComposer({
             <span className="quick-entry-index">3</span>
             <div className="quick-entry-grid" style={{ flex: 1, width: '100%', gap: '12px' }}>
               <label className="field">
-                <span>Account</span>
+                <span>계좌</span>
                 <select
                   ref={accountRef}
-                  aria-label="Quick Entry Account"
+                  aria-label="빠른 등록 계좌"
                   value={accountId}
                   onChange={(event) => setAccountId(event.target.value)}
                   onKeyDown={(event) => moveFocusOnEnter(event, () => categoryRef.current?.focus())}
                 >
-                  <option value="">Select account</option>
+                  <option value="">계좌 선택</option>
                   {activeAccounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
@@ -256,10 +256,10 @@ export default function QuickEntryComposer({
               </label>
 
               <label className="field">
-                <span>Category</span>
+                <span>카테고리</span>
                 <select
                   ref={categoryRef}
-                  aria-label="Quick Entry Category"
+                  aria-label="빠른 등록 카테고리"
                   value={categoryId}
                   onChange={(event) => setCategoryId(event.target.value)}
                   onKeyDown={(event) => {
@@ -268,7 +268,7 @@ export default function QuickEntryComposer({
                     void handleSubmit();
                   }}
                 >
-                  <option value="">Leave empty for inbox</option>
+                  <option value="">미지정 (검토 필요)</option>
                   {selectableCategories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -281,7 +281,7 @@ export default function QuickEntryComposer({
 
           {suggestedCategories.length > 0 ? (
             <div className="chip-group quick-entry-suggestions" style={{ marginTop: '16px', paddingLeft: '32px' }}>
-              <span className="chip-group-label">Fast Pick</span>
+              <span className="chip-group-label">빠른 선택</span>
               {suggestedCategories.map((category) => (
                 <button
                   key={category.id}
@@ -297,7 +297,7 @@ export default function QuickEntryComposer({
 
           <div className="quick-entry-actions" style={{ marginTop: '20px' }}>
             <p className="hint">
-              Press <strong>Enter</strong> to advance. Leaving category empty queues it for review.
+              <strong>Enter</strong>를 눌러 다음 단계로 이동하세요. 카테고리를 비워두면 검토가 필요한 항목으로 분류됩니다.
             </p>
             <button
               className="btn btn-primary"
@@ -307,7 +307,7 @@ export default function QuickEntryComposer({
                 void handleSubmit();
               }}
             >
-              {saving ? 'Saving...' : actionLabel}
+              {saving ? '저장 중...' : actionLabel}
             </button>
           </div>
         </div>

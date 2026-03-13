@@ -107,7 +107,7 @@ export default function ReportsPage() {
         setBalances(balanceRes);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Failed to load reports.');
+        setError(err instanceof Error ? err.message : '리포트를 불러오는데 실패했습니다.');
         setSummary(null);
         setTransfers(null);
         setCashflow(null);
@@ -144,49 +144,49 @@ export default function ReportsPage() {
     <div className="page-container reports-page">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Reporting</p>
-          <h1 className="page-title">Trends & Balance</h1>
+          <p className="page-kicker">리포트</p>
+          <h1 className="page-title">추세 및 잔액 분석</h1>
         </div>
       </div>
 
       <div className="card reports-filter-card">
         <div className="chip-group reports-range-preset">
-          <span className="chip-group-label">Quick Range</span>
-          <button className="chip" type="button" onClick={() => applyRange(currentMonthRange())}>This Month</button>
-          <button className="chip" type="button" onClick={() => applyRange(lastMonthRange())}>Last Month</button>
+          <span className="chip-group-label">빠른 기간 선택</span>
+          <button className="chip" type="button" onClick={() => applyRange(currentMonthRange())}>이번 달</button>
+          <button className="chip" type="button" onClick={() => applyRange(lastMonthRange())}>지난 달</button>
         </div>
         <div className="grid-two">
           <label className="field">
-            <span>From</span>
-            <input aria-label="From" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <span>시작일</span>
+            <input aria-label="시작일" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
           </label>
           <label className="field">
-            <span>To</span>
-            <input aria-label="To" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+            <span>종료일</span>
+            <input aria-label="종료일" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
         </div>
-        <p className="hint">Inclusive range from <strong>{from}</strong> to <strong>{to}</strong>.</p>
+        <p className="hint"><strong>{from}</strong>부터 <strong>{to}</strong>까지의 데이터가 포함됩니다.</p>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
 
       <section className="reports-summary-grid">
         <article className="card reports-metric-card">
-          <span className="page-kicker">Income</span>
+          <span className="page-kicker">수입 합계</span>
           <strong className="kpi-positive">{loading || !summary ? '...' : formatKrw(summary.totalIncome)}</strong>
         </article>
         <article className="card reports-metric-card">
-          <span className="page-kicker">Expense</span>
+          <span className="page-kicker">지출 합계</span>
           <strong>{loading || !summary ? '...' : formatKrw(summary.totalExpense)}</strong>
         </article>
         <article className="card reports-metric-card">
-          <span className="page-kicker">Net Saving</span>
+          <span className="page-kicker">순저축액</span>
           <strong className={(summary?.netSaving ?? 0) >= 0 ? 'kpi-positive' : 'kpi-negative'}>
             {loading || !summary ? '...' : formatKrw(summary.netSaving)}
           </strong>
         </article>
         <article className="card reports-metric-card">
-          <span className="page-kicker">Transfer Volume</span>
+          <span className="page-kicker">이체 규모</span>
           <strong>{loading || !summary ? '...' : formatKrw(summary.transferVolume)}</strong>
         </article>
       </section>
@@ -195,22 +195,22 @@ export default function ReportsPage() {
         <section className="card reports-chart-card">
           <div className="dashboard-panel-head">
             <div>
-              <p className="page-kicker">Cashflow</p>
-              <h3>Daily Net Rhythm</h3>
+              <p className="page-kicker">현금 흐름</p>
+              <h3>일일 순유동성 추이</h3>
             </div>
           </div>
-          <SparkBars items={cashflowBars} emptyLabel="No cashflow data in this range." />
+          <SparkBars items={cashflowBars} emptyLabel="해당 기간의 현금 흐름 데이터가 없습니다." />
         </section>
 
         <section className="card reports-top-expense-card">
           <div className="dashboard-panel-head">
             <div>
-              <p className="page-kicker">Expense Mix</p>
-              <h3>Top Categories</h3>
+              <p className="page-kicker">지출 구성</p>
+              <h3>주요 카테고리</h3>
             </div>
           </div>
-          {loading ? <p className="hint">Loading category spend...</p> : null}
-          {!loading && (!topExpense || topExpense.items.length === 0) ? <p className="hint">No expense categories in this range.</p> : null}
+          {loading ? <p className="hint">카테고리별 지출을 불러오는 중...</p> : null}
+          {!loading && (!topExpense || topExpense.items.length === 0) ? <p className="hint">해당 기간의 지출 내역이 없습니다.</p> : null}
           {!loading && topExpense && topExpense.items.length > 0 ? (
             <ul className="reports-top-expense-list">
               {topExpense.items.map((item) => (
@@ -222,7 +222,7 @@ export default function ReportsPage() {
                   <div className="reports-top-expense-bar">
                     <div style={{ width: `${Math.max(10, (item.amount / topExpenseMax) * 100)}%` }} />
                   </div>
-                  <p className="hint">{item.transactionCount} item(s)</p>
+                  <p className="hint">{item.transactionCount}건의 거래</p>
                 </li>
               ))}
             </ul>
@@ -233,31 +233,31 @@ export default function ReportsPage() {
       <section className="card reports-balance-card">
         <div className="dashboard-panel-head">
           <div>
-            <p className="page-kicker">Balance Trend</p>
-            <h3>Account Lanes</h3>
+            <p className="page-kicker">잔액 추이</p>
+            <h3>계좌별 흐름</h3>
           </div>
         </div>
-        <LineTrendChart series={balanceSeries} emptyLabel="No balance trend yet." />
+        <LineTrendChart series={balanceSeries} emptyLabel="잔액 추이 데이터가 없습니다." />
       </section>
 
       <section className="card reports-transfer-card">
         <div className="dashboard-panel-head">
           <div>
-            <p className="page-kicker">Transfer Matrix</p>
-            <h3>Between Accounts</h3>
+            <p className="page-kicker">이체 매트릭스</p>
+            <h3>계좌 간 자금 이동</h3>
           </div>
         </div>
 
-        {loading ? <p className="hint">Loading transfers...</p> : null}
-        {!loading && transfers && transfers.items.length === 0 ? <p className="hint">No transfers found in this range.</p> : null}
+        {loading ? <p className="hint">이체 내역을 불러오는 중...</p> : null}
+        {!loading && transfers && transfers.items.length === 0 ? <p className="hint">해당 기간의 이체 내역이 없습니다.</p> : null}
 
         {!loading && transfers && transfers.items.length > 0 ? (
           <table className="flat-table">
             <thead>
               <tr>
-                <th>From</th>
-                <th>To</th>
-                <th>Amount</th>
+                <th>출금 계좌</th>
+                <th>입금 계좌</th>
+                <th>금액</th>
               </tr>
             </thead>
             <tbody>

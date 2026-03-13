@@ -22,7 +22,7 @@ function parseOptionalNonNegativeInteger(input: string, fieldName: string): numb
 
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(`${fieldName} must be a non-negative integer.`);
+    throw new Error(`${fieldName}은(는) 0 이상의 정수여야 합니다.`);
   }
 
   return parsed;
@@ -31,7 +31,7 @@ function parseOptionalNonNegativeInteger(input: string, fieldName: string): numb
 function parseNonNegativeInteger(input: string, fieldName: string): number {
   const parsed = parseOptionalNonNegativeInteger(input, fieldName);
   if (parsed == null) {
-    throw new Error(`${fieldName} is required.`);
+    throw new Error(`${fieldName}은(는) 필수 항목입니다.`);
   }
   return parsed;
 }
@@ -43,13 +43,13 @@ function formatKrw(value: number): string {
 function accountTypeLabel(type: AccountType): string {
   switch (type) {
     case 'CHECKING':
-      return 'Checking';
+      return '입출금';
     case 'SAVINGS':
-      return 'Savings';
+      return '예적금';
     case 'CASH':
-      return 'Cash';
+      return '현금';
     case 'INVESTMENT':
-      return 'Investment';
+      return '투자';
     default:
       return type;
   }
@@ -89,7 +89,7 @@ export default function AccountsPage() {
         setAccounts(response.items);
       } catch (err: unknown) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : 'Failed to load accounts.');
+        setError(err instanceof Error ? err.message : '계좌 내역을 불러오는데 실패했습니다.');
       } finally {
         if (active) setLoading(false);
       }
@@ -140,8 +140,8 @@ export default function AccountsPage() {
     setSubmitting(true);
 
     try {
-      const openingBalance = parseNonNegativeInteger(createOpeningBalance, 'Opening balance');
-      const orderIndex = parseOptionalNonNegativeInteger(createOrderIndex, 'Order index');
+      const openingBalance = parseNonNegativeInteger(createOpeningBalance, '기초 잔액');
+      const orderIndex = parseOptionalNonNegativeInteger(createOrderIndex, '정렬 순서');
 
       await createAccount({
         name: createName.trim(),
@@ -154,7 +154,7 @@ export default function AccountsPage() {
       await loadAccounts();
       resetCreateForm();
       setIsCreating(false);
-      setSuccessMessage('Account row added to the library.');
+      setSuccessMessage('라이브러리에 계좌가 추가되었습니다.');
     } catch (err: unknown) {
       if (isApiError(err) && err.fieldErrors) {
         const nextErrors: Record<string, string> = {};
@@ -164,7 +164,7 @@ export default function AccountsPage() {
         setCreateFieldErrors(nextErrors);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Account creation failed.');
+        setError(err instanceof Error ? err.message : '계좌 생성에 실패했습니다.');
       }
     } finally {
       setSubmitting(false);
@@ -179,9 +179,9 @@ export default function AccountsPage() {
     try {
       await patchAccount(account.id, { isActive: !account.isActive });
       await loadAccounts();
-      setSuccessMessage('Account status updated.');
+      setSuccessMessage('계좌 상태가 업데이트되었습니다.');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Account update failed.');
+      setError(err instanceof Error ? err.message : '계좌 업데이트에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -205,7 +205,7 @@ export default function AccountsPage() {
     setSubmitting(true);
 
     try {
-      const orderIndex = parseOptionalNonNegativeInteger(editRow.orderIndex, 'Order index');
+      const orderIndex = parseOptionalNonNegativeInteger(editRow.orderIndex, '정렬 순서');
       await patchAccount(accountId, {
         name: editRow.name.trim(),
         ...(orderIndex != null ? { orderIndex } : {})
@@ -213,7 +213,7 @@ export default function AccountsPage() {
 
       await loadAccounts();
       setEditRow(null);
-      setSuccessMessage('Account row updated.');
+      setSuccessMessage('계좌 정보가 수정되었습니다.');
     } catch (err: unknown) {
       if (isApiError(err) && err.fieldErrors) {
         const nextErrors: Record<string, string> = {};
@@ -223,7 +223,7 @@ export default function AccountsPage() {
         setEditFieldErrors(nextErrors);
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : 'Account update failed.');
+        setError(err instanceof Error ? err.message : '계좌 수정에 실패했습니다.');
       }
     } finally {
       setSubmitting(false);
@@ -234,35 +234,35 @@ export default function AccountsPage() {
     <div className="page-container accounts-page management-page">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Library</p>
-          <h1 className="page-title">Ledger Accounts</h1>
+          <p className="page-kicker">라이브러리</p>
+          <h1 className="page-title">자산 계좌</h1>
         </div>
         <button className="btn btn-primary" type="button" onClick={() => setIsCreating((value) => !value)}>
-          {isCreating ? 'Close Row' : 'New Row'}
+          {isCreating ? '닫기' : '새 계좌 추가'}
         </button>
       </div>
 
       <section className="management-overview-grid">
         <article className="card management-metric-card">
-          <span className="page-kicker">Total Accounts</span>
-          <strong>{accounts.length.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">총 계좌 수</span>
+          <strong>{accounts.length.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card">
-          <span className="page-kicker">Active</span>
-          <strong>{activeCount.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">활성</span>
+          <strong>{activeCount.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card">
-          <span className="page-kicker">Archived</span>
-          <strong>{archivedCount.toLocaleString('ko-KR')}</strong>
+          <span className="page-kicker">보관</span>
+          <strong>{archivedCount.toLocaleString('ko-KR')}개</strong>
         </article>
         <article className="card management-metric-card accent">
-          <span className="page-kicker">Live Balance</span>
+          <span className="page-kicker">총 실시간 잔액</span>
           <strong>{formatKrw(liveBalanceTotal)}</strong>
         </article>
       </section>
 
       {error ? (
-        <StateNotice tone="error" title="Could not update the account library." description={error} compact />
+        <StateNotice tone="error" title="계좌 라이브러리를 업데이트할 수 없습니다." description={error} compact />
       ) : null}
       {successMessage ? (
         <StateNotice tone="success" title={successMessage} compact />
@@ -273,15 +273,15 @@ export default function AccountsPage() {
           <section className="card management-create-card">
             <div className="management-toolbar">
               <div>
-                <p className="page-kicker">Quick Add</p>
-                <h3>New Account Row</h3>
+                <p className="page-kicker">빠른 추가</p>
+                <h3>새 계좌 정보</h3>
               </div>
             </div>
             <form className="management-create-grid" onSubmit={handleCreateAccount}>
               <label className="field">
-                <span>Account Name</span>
+                <span>계좌명</span>
                 <input
-                  aria-label="Account name"
+                  aria-label="계좌명"
                   value={createName}
                   onChange={(event) => setCreateName(event.target.value)}
                   required
@@ -290,22 +290,22 @@ export default function AccountsPage() {
                 {createFieldErrors.name ? <span className="hint error">{createFieldErrors.name}</span> : null}
               </label>
               <label className="field">
-                <span>Account Type</span>
+                <span>계좌 유형</span>
                 <select
-                  aria-label="Account type"
+                  aria-label="계좌 유형"
                   value={createType}
                   onChange={(event) => setCreateType(event.target.value as AccountType)}
                 >
-                  <option value="CHECKING">Checking</option>
-                  <option value="SAVINGS">Savings</option>
-                  <option value="CASH">Cash</option>
-                  <option value="INVESTMENT">Investment</option>
+                  <option value="CHECKING">입출금</option>
+                  <option value="SAVINGS">예적금</option>
+                  <option value="CASH">현금</option>
+                  <option value="INVESTMENT">투자</option>
                 </select>
               </label>
               <label className="field">
-                <span>Opening Balance (KRW)</span>
+                <span>기초 잔액 (KRW)</span>
                 <input
-                  aria-label="Opening balance (KRW)"
+                  aria-label="기초 잔액 (KRW)"
                   inputMode="numeric"
                   value={createOpeningBalance}
                   onChange={(event) => setCreateOpeningBalance(event.target.value)}
@@ -313,11 +313,11 @@ export default function AccountsPage() {
                 {createFieldErrors.openingBalance ? <span className="hint error">{createFieldErrors.openingBalance}</span> : null}
               </label>
               <label className="field">
-                <span>Order Index</span>
+                <span>정렬 순서</span>
                 <input
-                  aria-label="Order index"
+                  aria-label="정렬 순서"
                   inputMode="numeric"
-                  placeholder="auto"
+                  placeholder="자동"
                   value={createOrderIndex}
                   onChange={(event) => setCreateOrderIndex(event.target.value)}
                 />
@@ -325,7 +325,7 @@ export default function AccountsPage() {
               </label>
               <div className="management-form-actions">
                 <button className="btn btn-primary" type="submit" disabled={submitting}>
-                  {submitting ? 'Creating...' : 'Create Account'}
+                  {submitting ? '생성 중...' : '계좌 생성'}
                 </button>
                 <button
                   className="btn"
@@ -335,7 +335,7 @@ export default function AccountsPage() {
                     setIsCreating(false);
                   }}
                 >
-                  Cancel
+                  취소
                 </button>
               </div>
             </form>
@@ -343,11 +343,11 @@ export default function AccountsPage() {
         ) : (
           <StateNotice
             tone="disabled"
-            title="Quick add row is collapsed."
-            description="Open a new row when you need to register another account."
+            title="새 계좌 추가 영역이 닫혀 있습니다."
+            description="다른 계좌를 등록하려면 새 항목 추가를 클릭하세요."
             action={(
               <button className="btn btn-primary" type="button" onClick={() => setIsCreating(true)}>
-                Open Row
+                항목 열기
               </button>
             )}
           />
@@ -356,28 +356,28 @@ export default function AccountsPage() {
         <section className="card management-main-card">
           <div className="management-toolbar">
             <div>
-              <p className="page-kicker">Dense View</p>
-              <h3>Scan, rename, archive</h3>
+              <p className="page-kicker">상세 목록</p>
+              <h3>조회, 이름 수정, 보관</h3>
             </div>
-            <p className="management-section-note">Active rows stay on top. Order index keeps the library stable.</p>
+            <p className="management-section-note">활성 계좌가 위쪽에 표시되며, 정렬 순서를 통해 목록을 관리할 수 있습니다.</p>
           </div>
 
           {loading ? (
             <StateNotice
               tone="loading"
-              title="Loading account library."
-              description="Balances and activation status are being refreshed."
+              title="계좌 라이브러리를 불러오는 중입니다."
+              description="잔액과 활성화 상태를 업데이트하고 있습니다."
             />
           ) : null}
 
           {!loading && orderedAccounts.length === 0 ? (
             <StateNotice
               tone="empty"
-              title="No accounts yet."
-              description="Create your first ledger account to start recording transactions."
+              title="아직 등록된 계좌가 없습니다."
+              description="거래 내역을 기록하기 위해 첫 번째 자산 계좌를 생성하세요."
               action={(
                 <button className="btn btn-primary" type="button" onClick={() => setIsCreating(true)}>
-                  Add First Account
+                  첫 계좌 추가하기
                 </button>
               )}
             />
@@ -388,13 +388,13 @@ export default function AccountsPage() {
               <table className="flat-table management-table">
                 <thead>
                   <tr>
-                    <th>Account</th>
-                    <th>Type</th>
-                    <th>Live Balance</th>
-                    <th>Opening</th>
-                    <th>Status</th>
-                    <th>Order</th>
-                    <th>Actions</th>
+                    <th>계좌</th>
+                    <th>유형</th>
+                    <th>실시간 잔액</th>
+                    <th>기초 잔액</th>
+                    <th>상태</th>
+                    <th>순서</th>
+                    <th>관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -405,10 +405,10 @@ export default function AccountsPage() {
                         <td>
                           {isEditing ? (
                             <label className="management-inline-stack">
-                              <span className="sr-only">Edit name for {account.name}</span>
+                              <span className="sr-only">{account.name} 이름 수정</span>
                               <input
                                 className="management-inline-input"
-                                aria-label={`Edit name for ${account.name}`}
+                                aria-label={`${account.name} 이름 수정`}
                                 value={editRow.name}
                                 onChange={(event) => setEditRow((current) => (
                                   current ? { ...current, name: event.target.value } : current
@@ -428,18 +428,18 @@ export default function AccountsPage() {
                         <td className="management-number">{formatKrw(account.openingBalance)}</td>
                         <td>
                           <StatusBadge tone={account.isActive ? 'success' : 'warning'}>
-                            {account.isActive ? 'Active' : 'Archived'}
+                            {account.isActive ? '활성' : '보관됨'}
                           </StatusBadge>
                         </td>
                         <td>
                           {isEditing ? (
                             <label className="management-inline-stack">
-                              <span className="sr-only">Edit order for {account.name}</span>
+                              <span className="sr-only">{account.name} 순서 수정</span>
                               <input
                                 className="management-inline-input"
-                                aria-label={`Edit order for ${account.name}`}
+                                aria-label={`${account.name} 순서 수정`}
                                 inputMode="numeric"
-                                placeholder="auto"
+                                placeholder="자동"
                                 value={editRow.orderIndex}
                                 onChange={(event) => setEditRow((current) => (
                                   current ? { ...current, orderIndex: event.target.value } : current
@@ -448,7 +448,7 @@ export default function AccountsPage() {
                               {editFieldErrors.orderIndex ? <span className="hint error">{editFieldErrors.orderIndex}</span> : null}
                             </label>
                           ) : (
-                            <span>{account.orderIndex == null ? 'Auto' : account.orderIndex}</span>
+                            <span>{account.orderIndex == null ? '자동' : account.orderIndex}</span>
                           )}
                         </td>
                         <td>
@@ -463,10 +463,10 @@ export default function AccountsPage() {
                                     void handleSaveEdit(account.id);
                                   }}
                                 >
-                                  Save
+                                  저장
                                 </button>
                                 <button className="btn btn-sm" type="button" onClick={() => setEditRow(null)}>
-                                  Cancel
+                                  취소
                                 </button>
                               </>
                             ) : (
@@ -475,21 +475,21 @@ export default function AccountsPage() {
                                   className="btn btn-sm"
                                   type="button"
                                   disabled={submitting}
-                                  aria-label={`Edit ${account.name}`}
+                                  aria-label={`${account.name} 수정`}
                                   onClick={() => startEdit(account)}
                                 >
-                                  Edit
+                                  수정
                                 </button>
                                 <button
                                   className="btn btn-sm"
                                   type="button"
                                   disabled={submitting}
-                                  aria-label={`${account.isActive ? 'Archive' : 'Restore'} ${account.name}`}
+                                  aria-label={`${account.isActive ? '보관' : '복구'} ${account.name}`}
                                   onClick={() => {
                                     void handleToggleActive(account);
                                   }}
                                 >
-                                  {account.isActive ? 'Archive' : 'Restore'}
+                                  {account.isActive ? '보관' : '복구'}
                                 </button>
                               </>
                             )}
