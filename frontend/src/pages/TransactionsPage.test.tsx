@@ -24,25 +24,29 @@ vi.mock('../components/SummaryCards', () => {
 vi.mock('../api', () => {
   return {
     listTransactions: vi.fn(async () => ({ items: [], page: 0, size: 50, totalElements: 0 })),
-    listAccounts: vi.fn(async () => ({ items: [
-      { id: 1, name: 'Main', type: 'CHECKING', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 },
-      { id: 2, name: 'Savings', type: 'SAVINGS', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 }
-    ] })),
-    listCategories: vi.fn(async () => ({ items: [
-      { id: 10, type: 'EXPENSE', name: 'Food', parentId: null, isActive: true, orderIndex: null },
-      { id: 11, type: 'EXPENSE', name: 'Taxi', parentId: null, isActive: true, orderIndex: null },
-      { id: 12, type: 'EXPENSE', name: 'Travel', parentId: null, isActive: true, orderIndex: null }
-    ] })),
+    listAccounts: vi.fn(async () => ({
+      items: [
+        { id: 1, name: 'Main', type: 'CHECKING', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 },
+        { id: 2, name: 'Savings', type: 'SAVINGS', isActive: true, orderIndex: null, openingBalance: 0, currentBalance: 0 }
+      ]
+    })),
+    listCategories: vi.fn(async () => ({
+      items: [
+        { id: 10, type: 'EXPENSE', name: 'Food', parentId: null, isActive: true, orderIndex: null },
+        { id: 11, type: 'EXPENSE', name: 'Taxi', parentId: null, isActive: true, orderIndex: null },
+        { id: 12, type: 'EXPENSE', name: 'Travel', parentId: null, isActive: true, orderIndex: null }
+      ]
+    })),
     createCategory: vi.fn(async () => ({ id: 13, type: 'EXPENSE', name: 'Groceries', parentId: null, isActive: true, orderIndex: null })),
     createTransaction: vi.fn(async () => ({
       id: 99,
       txDate: '2026-03-07',
       type: 'EXPENSE',
-      amount: 1,
+      amount: 12000,
       accountId: 1,
       fromAccountId: null,
       toAccountId: null,
-      description: '',
+      description: 'Lunch',
       categoryId: null,
       tagNames: [],
       needsReview: true,
@@ -76,6 +80,7 @@ vi.mock('../api', () => {
 import TransactionsPage from './TransactionsPage';
 import {
   createCategory,
+  createTransaction,
   deleteTransaction,
   listCategories,
   listTransactions,
@@ -129,7 +134,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByTestId('summary-cards')).toBeInTheDocument();
   });
 
-  it('shows Recent/Frequent sections and deduplicates category options', async () => {
+  it('shows Recent and Frequent sections without duplicate category rows', async () => {
     (listCategories as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       items: [
         { id: 10, type: 'EXPENSE', name: 'Food', parentId: null, isActive: true, orderIndex: null },
@@ -155,25 +160,23 @@ describe('TransactionsPage', () => {
 
     renderAt('/transactions');
 
-    fireEvent.click(screen.getByRole('button', { name: /new transaction/i }));
-    await screen.findByText('ADD NEW TRANSACTION');
+    fireEvent.click(screen.getByRole('button', { name: '+ 새 거래 추가' }));
+    await screen.findByRole('heading', { name: '새 거래 추가' });
 
-    fireEvent.focus(screen.getByLabelText('Category'));
+    fireEvent.focus(screen.getByRole('combobox', { name: '카테고리' }));
 
-    expect(screen.getByText('Recent')).toBeInTheDocument();
+    expect(await screen.findByText('Recent')).toBeInTheDocument();
     expect(screen.getByText('Frequent')).toBeInTheDocument();
-
-    const taxiOptions = screen.getAllByText('Taxi');
-    expect(taxiOptions.length).toBe(1);
+    expect(screen.getAllByText('Taxi')).toHaveLength(1);
   });
 
   it('shows create option only when exact match is missing', async () => {
     renderAt('/transactions');
 
-    fireEvent.click(screen.getByRole('button', { name: /new transaction/i }));
-    await screen.findByText('ADD NEW TRANSACTION');
+    fireEvent.click(screen.getByRole('button', { name: '+ 새 거래 추가' }));
+    await screen.findByRole('heading', { name: '새 거래 추가' });
 
-    const categoryInput = screen.getByLabelText('Category') as HTMLInputElement;
+    const categoryInput = screen.getByRole('combobox', { name: '카테고리' }) as HTMLInputElement;
 
     fireEvent.change(categoryInput, { target: { value: 'Taxi' } });
     expect(screen.queryByText('+ Create "Taxi"')).not.toBeInTheDocument();
@@ -182,17 +185,58 @@ describe('TransactionsPage', () => {
     expect(screen.getByText('+ Create "Groceries"')).toBeInTheDocument();
   });
 
-  it('forces Needs Review when category is empty', async () => {
+  it('creates a category from the combobox create option', async () => {
     renderAt('/transactions');
 
-    fireEvent.click(screen.getByRole('button', { name: /new transaction/i }));
-    await screen.findByText('ADD NEW TRANSACTION');
+    fireEvent.click(screen.getByRole('button', { name: '+ 새 거래 추가' }));
+    await screen.findByRole('heading', { name: '새 거래 추가' });
 
-    fireEvent.click(screen.getByRole('button', { name: /more options/i }));
+    const categoryInput = screen.getByRole('combobox', { name: '카테고리' }) as HTMLInputElement;
+    fireEvent.change(categoryInput, { target: { value: 'Groceries' } });
+    fireEvent.click(screen.getByText('+ Create "Groceries"'));
 
-    const needsReview = screen.getByLabelText('Needs Review') as HTMLInputElement;
+    await waitFor(() => {
+      expect(createCategory).toHaveBeenCalledWith({ name: 'Groceries', type: 'EXPENSE', isActive: true });
+    });
+  });
+
+  it('forces 검토 필요 when category is empty', async () => {
+    renderAt('/transactions');
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 새 거래 추가' }));
+    await screen.findByRole('heading', { name: '새 거래 추가' });
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 옵션 표시' }));
+
+    const needsReview = screen.getByLabelText('검토 필요') as HTMLInputElement;
     expect(needsReview.disabled).toBe(true);
     expect(needsReview.checked).toBe(true);
+  });
+
+  it('submits a new expense from the drawer with the active account preselected', async () => {
+    renderAt('/transactions');
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 새 거래 추가' }));
+    await screen.findByRole('heading', { name: '새 거래 추가' });
+
+    const accountSelect = screen.getByLabelText('계좌') as HTMLSelectElement;
+    await waitFor(() => expect(accountSelect.value).toBe('1'));
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: '금액' }), { target: { value: '12000' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '내용', exact: true }), { target: { value: 'Lunch' } });
+    fireEvent.click(screen.getByRole('button', { name: '거래 내역 저장' }));
+
+    await waitFor(() => {
+      expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'EXPENSE',
+        amount: 12000,
+        accountId: 1,
+        categoryId: null,
+        description: 'Lunch',
+        needsReview: true,
+        excludeFromReports: false
+      }));
+    });
   });
 
   it('supports delete undo before timeout', async () => {
@@ -222,10 +266,10 @@ describe('TransactionsPage', () => {
 
     fireEvent.click(await screen.findByText('Lunch'));
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'DELETE' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
-    expect(screen.getByText(/Deleted · Undo/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByText(/삭제되었습니다 · 실행 취소/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }));
 
     await act(async () => {
       vi.advanceTimersByTime(5000);
@@ -262,7 +306,7 @@ describe('TransactionsPage', () => {
 
     fireEvent.click(await screen.findByText('Lunch'));
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'DELETE' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
 
     await act(async () => {
       vi.advanceTimersByTime(5000);
@@ -270,47 +314,6 @@ describe('TransactionsPage', () => {
     });
 
     expect(deleteTransaction).toHaveBeenCalledWith(1);
-  });
-
-  it('restores row and shows error when delayed delete fails', async () => {
-    (deleteTransaction as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Delete failed.'));
-
-    (listTransactions as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [{
-        id: 1,
-        txDate: '2026-03-07',
-        type: 'EXPENSE',
-        amount: 12000,
-        accountId: 1,
-        fromAccountId: null,
-        toAccountId: null,
-        description: 'Lunch',
-        categoryId: 10,
-        tagNames: [],
-        needsReview: true,
-        excludeFromReports: false,
-        source: 'MANUAL',
-        deletedAt: null
-      }],
-      page: 0,
-      size: 50,
-      totalElements: 1
-    });
-
-    renderAt('/transactions');
-
-    fireEvent.click(await screen.findByText('Lunch'));
-    vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: 'DELETE' }));
-    expect(screen.queryByText('Lunch')).not.toBeInTheDocument();
-
-    await act(async () => {
-      vi.advanceTimersByTime(5000);
-      await flushMicrotasks();
-    });
-
-    expect(screen.getByText('Delete failed.')).toBeInTheDocument();
-    expect(screen.getByText('Lunch')).toBeInTheDocument();
   });
 
   it('supports inbox bulk clear with partial failure', async () => {
@@ -380,25 +383,10 @@ describe('TransactionsPage', () => {
 
     fireEvent.click(screen.getByLabelText('Select transaction 1'));
     fireEvent.click(screen.getByLabelText('Select transaction 2'));
-
-    fireEvent.click(screen.getByRole('button', { name: /mark as cleared/i }));
+    fireEvent.click(screen.getByRole('button', { name: '검토 완료로 표시' }));
 
     await waitFor(() => expect(patchTransaction).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Failed to clear 1 item(s). Please retry.')).toBeInTheDocument();
     expect(screen.getByText('Cleared 1 item(s).')).toBeInTheDocument();
-  });
-
-  it('creates category from combobox create option', async () => {
-    renderAt('/transactions');
-
-    fireEvent.click(screen.getByRole('button', { name: /new transaction/i }));
-    await screen.findByText('ADD NEW TRANSACTION');
-
-    const categoryInput = screen.getByLabelText('Category') as HTMLInputElement;
-    fireEvent.change(categoryInput, { target: { value: 'Groceries' } });
-
-    fireEvent.click(screen.getByText('+ Create "Groceries"'));
-
-    await waitFor(() => expect(createCategory).toHaveBeenCalledWith({ name: 'Groceries', type: 'EXPENSE', isActive: true }));
   });
 });

@@ -4,6 +4,15 @@ import { vi } from 'vitest';
 
 const accountList = { items: [] };
 const categoryList = { items: [] };
+const summary = {
+  from: '2026-03-01',
+  to: '2026-03-11',
+  totalIncome: 0,
+  totalExpense: 0,
+  netSaving: 0,
+  transferVolume: 0
+};
+const cashflow = { from: '2026-03-01', to: '2026-03-11', items: [] };
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -40,7 +49,10 @@ describe('App Integration', () => {
         });
       }
       if (url.includes('/api/v1/accounts')) return new Response(JSON.stringify(accountList), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/categories')) return new Response(JSON.stringify(categoryList), { status: 200, headers: { 'Content-Type': 'application/json' } });
       if (url.includes('/api/v1/transactions')) return new Response(JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/reports/summary')) return new Response(JSON.stringify(summary), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/reports/cashflow')) return new Response(JSON.stringify(cashflow), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
       return new Response(null, { status: 404 });
     });
@@ -53,7 +65,7 @@ describe('App Integration', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'demo' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText('DASHBOARD')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '컨트롤 센터', level: 1 })).toBeInTheDocument();
   });
 
   it('sends X-XSRF-TOKEN header for logout and redirects to auth', async () => {
@@ -67,7 +79,10 @@ describe('App Integration', () => {
         });
       }
       if (url.includes('/api/v1/accounts')) return new Response(JSON.stringify(accountList), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/categories')) return new Response(JSON.stringify(categoryList), { status: 200, headers: { 'Content-Type': 'application/json' } });
       if (url.includes('/api/v1/transactions')) return new Response(JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/reports/summary')) return new Response(JSON.stringify(summary), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (url.includes('/api/v1/reports/cashflow')) return new Response(JSON.stringify(cashflow), { status: 200, headers: { 'Content-Type': 'application/json' } });
       if (url.endsWith('/api/v1/auth/logout')) {
         const headers = new Headers(init?.headers);
         if (headers.get('X-XSRF-TOKEN') !== 'abc') return new Response(null, { status: 403 });
@@ -78,9 +93,9 @@ describe('App Integration', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<App />);
-    expect(await screen.findByText('DASHBOARD')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '컨트롤 센터', level: 1 })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
     expect(await screen.findByRole('tab', { name: 'Login' })).toBeInTheDocument();
   });
 });

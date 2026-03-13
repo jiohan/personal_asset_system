@@ -275,31 +275,33 @@ export default function ImportsPage() {
     <div className="page-container imports-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">CSV IMPORT</h1>
-          <p className="hint">1-shot import with row validation, duplicate skip, and atomic save.</p>
+          <p className="page-kicker">Import Studio</p>
+          <h1 className="page-title">CSV Import</h1>
+          <p className="hint">Three steps: load file, map columns, review then import atomically.</p>
         </div>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
 
       <div className="imports-layout">
-        <form className="card" onSubmit={handleSubmit}>
-          <div className="imports-card-header">
-            <div>
-              <h3>Upload and Mapping</h3>
-              <p className="hint">Supported scope: `INCOME` and `EXPENSE` only. `TRANSFER` CSV rows are rejected in this MVP.</p>
+        <form className="card imports-main-card" onSubmit={handleSubmit}>
+          <section className="imports-step-card">
+            <div className="imports-step-head">
+              <span>Step 1</span>
+              <div>
+                <h3>Load CSV</h3>
+                <p className="hint">Income and expense rows are supported. Transfer rows are intentionally rejected in this phase.</p>
+              </div>
             </div>
-          </div>
 
-          <label className="field">
-            <span>CSV File</span>
-            <input type="file" accept=".csv,text/csv" onChange={handleFileChange} />
-            {parsingFile ? <span className="hint">Parsing file...</span> : null}
-            {fieldErrors.file ? <span className="hint error">{fieldErrors.file}</span> : null}
-          </label>
+            <label className="field">
+              <span>CSV File</span>
+              <input type="file" accept=".csv,text/csv" onChange={handleFileChange} />
+              {parsingFile ? <span className="hint">Parsing file...</span> : null}
+              {fieldErrors.file ? <span className="hint error">{fieldErrors.file}</span> : null}
+            </label>
 
-          {preview ? (
-            <>
+            {preview ? (
               <div className="imports-note-grid">
                 <div className="card import-subcard">
                   <h4>Detected Headers</h4>
@@ -318,6 +320,23 @@ export default function ImportsPage() {
                       <option value="INCOME">INCOME</option>
                     </select>
                   </label>
+                </div>
+              </div>
+            ) : (
+              <div className="card import-subcard import-empty-state">
+                <h4>Before You Import</h4>
+                <p className="hint">Upload a UTF-8 CSV with headers so the importer can map columns and account names.</p>
+              </div>
+            )}
+          </section>
+
+          {preview ? (
+            <section className="imports-step-card">
+              <div className="imports-step-head">
+                <span>Step 2</span>
+                <div>
+                  <h3>Map Columns</h3>
+                  <p className="hint">Confirm required headers, then map every CSV account name to an active account.</p>
                 </div>
               </div>
 
@@ -387,6 +406,18 @@ export default function ImportsPage() {
                 {missingAccountMappings > 0 ? <p className="hint error">{missingAccountMappings} account mapping(s) still missing.</p> : null}
                 {fieldErrors['mapping.accountNameMap'] ? <p className="hint error">{fieldErrors['mapping.accountNameMap']}</p> : null}
               </div>
+            </section>
+          ) : null}
+
+          {preview ? (
+            <section className="imports-step-card">
+              <div className="imports-step-head">
+                <span>Step 3</span>
+                <div>
+                  <h3>Review & Run</h3>
+                  <p className="hint">Preview the parsed rows, then run a single atomic import.</p>
+                </div>
+              </div>
 
               <div className="card import-subcard">
                 <h4>Preview</h4>
@@ -407,21 +438,16 @@ export default function ImportsPage() {
                   </table>
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="card import-subcard import-empty-state">
-              <h4>Before You Import</h4>
-              <p className="hint">Upload a UTF-8 CSV with headers to auto-detect columns and map account names before saving.</p>
-            </div>
-          )}
 
-          <p className={mappingReady ? 'hint text-cyan' : 'hint'}>{submitHint}</p>
+              <p className={mappingReady ? 'hint text-cyan' : 'hint'}>{submitHint}</p>
 
-          <div className="form-actions">
-            <button className="btn btn-primary" type="submit" disabled={!mappingReady || submitting || loadingAccounts}>
-              {submitting ? 'IMPORTING...' : 'RUN IMPORT'}
-            </button>
-          </div>
+              <div className="form-actions">
+                <button className="btn btn-primary" type="submit" disabled={!mappingReady || submitting || loadingAccounts}>
+                  {submitting ? 'IMPORTING...' : 'RUN IMPORT'}
+                </button>
+              </div>
+            </section>
+          ) : null}
         </form>
 
         <div className="imports-side-column">
@@ -429,9 +455,9 @@ export default function ImportsPage() {
             <h3>Rules</h3>
             <ul className="flat-list">
               <li className="list-item">If any row fails validation, the full import is rolled back.</li>
-              <li className="list-item">Duplicate detection uses `date + type + amount + account + normalized description`.</li>
-              <li className="list-item">Imported rows are saved without a category and move into inbox review (`needsReview=true`).</li>
-              <li className="list-item">The import source is stored automatically as `source=CSV`.</li>
+              <li className="list-item">Duplicate detection uses date + type + amount + account + normalized description.</li>
+              <li className="list-item">Imported rows are saved without a category and move into inbox review with needsReview=true.</li>
+              <li className="list-item">The import source is stored automatically as source=CSV.</li>
             </ul>
           </div>
 

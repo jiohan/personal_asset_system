@@ -16,6 +16,15 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
   List<TransactionEntity> findAllByUserIdAndDeletedAtIsNull(Long userId);
 
+  List<TransactionEntity> findAllByUserIdAndDeletedAtIsNullAndTxDateGreaterThanEqualAndTxDateLessThanEqualOrderByTxDateAscIdAsc(
+      Long userId,
+      LocalDate from,
+      LocalDate to);
+
+  List<TransactionEntity> findAllByUserIdAndDeletedAtIsNullAndTxDateLessThanEqualOrderByTxDateAscIdAsc(
+      Long userId,
+      LocalDate to);
+
   @Query("""
       select new com.jioha.asset.domain.TransactionSnapshot(t.type, t.amount, t.excludeFromReports, false)
       from TransactionEntity t
