@@ -249,31 +249,27 @@ export default function DashboardPage() {
           {!loading && recentTransactions.length === 0 ? <p className="hint">No recent transactions.</p> : null}
 
           {!loading && recentTransactions.length > 0 ? (
-            <table className="flat-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Account</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map((tx) => (
-                  <tr key={tx.id}>
-                    <td>{tx.txDate}</td>
-                    <td>{tx.description || 'Untitled'}</td>
-                    <td>{tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? 'Unknown') : 'Inbox'}</td>
-                    <td>{transactionAccountLabel(tx, accountNameById)}</td>
-                    <td className={tx.type === 'INCOME' ? 'text-cyan' : ''}>
-                      {tx.type === 'TRANSFER' ? '↔' : tx.type === 'INCOME' ? '+' : '-'}
+            <ul className="dashboard-inbox-list">
+              {recentTransactions.map((tx) => {
+                const categoryName = tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? 'Unknown') : 'Inbox';
+                const baseClass = tx.type === 'INCOME' ? 'income' : tx.type === 'EXPENSE' ? 'expense' : '';
+                const sign = tx.type === 'TRANSFER' ? '↔' : tx.type === 'INCOME' ? '+' : '-';
+                return (
+                  <li key={tx.id}>
+                    <div>
+                      <strong>{tx.description.trim() || 'Untitled transaction'}</strong>
+                      <p className="hint">
+                        {tx.txDate} · {categoryName} · {transactionAccountLabel(tx, accountNameById)}
+                      </p>
+                    </div>
+                    <span className={`dashboard-amount ${baseClass}`}>
+                      {sign}
                       {tx.amount.toLocaleString('ko-KR')} KRW
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           ) : null}
         </section>
 

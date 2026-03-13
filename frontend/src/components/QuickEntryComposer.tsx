@@ -165,7 +165,7 @@ export default function QuickEntryComposer({
   };
 
   return (
-    <section className="card quick-entry-card" aria-label={title}>
+    <section className="card quick-entry-card" aria-label={title} style={{ padding: '20px' }}>
       <div className="quick-entry-head">
         <div>
           <p className="page-kicker">Quick Entry</p>
@@ -216,7 +216,7 @@ export default function QuickEntryComposer({
 
       {showDetails ? (
         <div className="quick-entry-details">
-          <div className="quick-entry-type-toggle" role="tablist" aria-label="Quick entry type">
+          <div className="quick-entry-type-toggle" role="tablist" aria-label="Quick entry type" style={{ marginBottom: '16px', marginTop: '4px' }}>
             <button
               type="button"
               className={`chip ${txType === 'EXPENSE' ? 'active' : ''}`}
@@ -233,9 +233,9 @@ export default function QuickEntryComposer({
             </button>
           </div>
 
-          <div className="quick-entry-grid">
-            <div className="quick-entry-step">
-              <span className="quick-entry-index">3</span>
+          <div className="quick-entry-step" style={{ alignItems: 'flex-start' }}>
+            <span className="quick-entry-index">3</span>
+            <div className="quick-entry-grid" style={{ flex: 1, width: '100%', gap: '12px' }}>
               <label className="field">
                 <span>Account</span>
                 <select
@@ -254,10 +254,7 @@ export default function QuickEntryComposer({
                 </select>
                 {fieldErrors.accountId ? <span className="hint error">{fieldErrors.accountId}</span> : null}
               </label>
-            </div>
 
-            <div className="quick-entry-step">
-              <span className="quick-entry-index">4</span>
               <label className="field">
                 <span>Category</span>
                 <select
@@ -271,7 +268,7 @@ export default function QuickEntryComposer({
                     void handleSubmit();
                   }}
                 >
-                  <option value="">Leave uncategorized</option>
+                  <option value="">Leave empty for inbox</option>
                   {selectableCategories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -283,7 +280,7 @@ export default function QuickEntryComposer({
           </div>
 
           {suggestedCategories.length > 0 ? (
-            <div className="chip-group quick-entry-suggestions">
+            <div className="chip-group quick-entry-suggestions" style={{ marginTop: '16px', paddingLeft: '32px' }}>
               <span className="chip-group-label">Fast Pick</span>
               {suggestedCategories.map((category) => (
                 <button
@@ -298,9 +295,9 @@ export default function QuickEntryComposer({
             </div>
           ) : null}
 
-          <div className="quick-entry-actions">
+          <div className="quick-entry-actions" style={{ marginTop: '20px' }}>
             <p className="hint">
-              Press <strong>Enter</strong> to advance. Leave category empty to send the row to inbox review.
+              Press <strong>Enter</strong> to advance. Leaving category empty queues it for review.
             </p>
             <button
               className="btn btn-primary"

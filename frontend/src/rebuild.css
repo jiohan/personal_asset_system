@@ -239,6 +239,9 @@ textarea {
   background: rgba(5, 7, 12, 0.92);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(31, 38, 54, 0.85);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .topbar-left,
@@ -308,12 +311,13 @@ select {
 }
 
 .btn-primary {
-  border-color: var(--accent-blue);
-  background: linear-gradient(180deg, var(--accent-blue), var(--accent-blue-strong));
+  border-color: var(--accent-cyan);
+  background: linear-gradient(180deg, var(--accent-cyan), #00b8cc);
+  color: var(--bg-app);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #3f8cff, #216eec);
+  background: linear-gradient(180deg, #00ffff, #00d4eb);
 }
 
 .btn-danger {
@@ -501,6 +505,7 @@ select:focus {
 }
 
 @media (max-width: 960px) {
+
   .layout-container,
   .layout-container.rail-collapsed {
     grid-template-columns: minmax(0, 1fr);
@@ -607,6 +612,10 @@ select:focus {
   .page-header {
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .dashboard-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -740,8 +749,8 @@ select:focus {
 
 .spark-bar-fill {
   width: 100%;
-  min-height: 8px;
-  background: rgba(111, 121, 146, 0.4);
+  min-height: 4px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .spark-bar-positive .spark-bar-fill {
@@ -749,11 +758,12 @@ select:focus {
 }
 
 .spark-bar-negative .spark-bar-fill {
-  background: linear-gradient(180deg, rgba(238, 242, 255, 0.18), rgba(238, 242, 255, 0.78));
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .spark-bar-neutral .spark-bar-fill {
-  background: linear-gradient(180deg, rgba(111, 121, 146, 0.28), rgba(111, 121, 146, 0.52));
+  background: transparent;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.03);
 }
 
 .spark-bar-label {
@@ -783,7 +793,7 @@ select:focus {
 }
 
 .quick-entry-index,
-.imports-step-head > span {
+.imports-step-head>span {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -912,7 +922,7 @@ select:focus {
   overflow: hidden;
 }
 
-.reports-top-expense-bar > div {
+.reports-top-expense-bar>div {
   height: 100%;
   background: linear-gradient(90deg, rgba(0, 229, 255, 0.75), rgba(47, 128, 255, 0.92));
 }
@@ -982,7 +992,7 @@ select:focus {
   background: rgba(7, 11, 18, 0.78);
 }
 
-.imports-step-head > div {
+.imports-step-head>div {
   display: grid;
   gap: 4px;
 }
@@ -1284,6 +1294,7 @@ select:focus {
 }
 
 @media (max-width: 1100px) {
+
   .dashboard-control-grid,
   .dashboard-bottom-grid,
   .reports-main-grid,
@@ -1299,7 +1310,7 @@ select:focus {
 }
 
 @media (max-width: 720px) {
-  .dashboard-kpi-row,
+
   .reports-summary-grid,
   .quick-entry-grid,
   .management-overview-grid,
