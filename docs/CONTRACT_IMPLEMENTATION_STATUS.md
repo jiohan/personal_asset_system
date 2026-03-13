@@ -28,6 +28,9 @@ Note:
 
 - [x] GET /reports/summary
 - [x] GET /reports/transfers
+- [x] GET /reports/cashflow
+- [x] GET /reports/categories/top-expense
+- [x] GET /reports/balances
 
 - [x] POST /imports/csv
 
@@ -55,5 +58,5 @@ Live API flow re-verified against the running local stack:
 - categories create/list/patch
 - transactions create/list/get/patch/delete
 - transfer create/list/report inclusion
-- reports summary/transfers
+- reports summary/transfers/cashflow/top-expense/balances
 - csv import create/skip/rollback behavior

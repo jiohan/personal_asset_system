@@ -25,3 +25,10 @@ backend/.settings/
 # Local personal tooling config
 .codex/
 opencode.json
+
+# Claude Code personal settings (contains DB credentials)
+.claude/settings.local.json
+
+# Local temp artifacts
+tmp/
+test-results/
