@@ -103,8 +103,8 @@ MVP 타입
 ### 5.3 Category / Tag
 Category
 - MVP는 2단계(루트 + 자식)
-- TRANSFER에도 카테고리 지정 가능
-- 단, TRANSFER 카테고리는 지출 통계에 포함되지 않음
+- 카테고리 타입은 `INCOME`/`EXPENSE`/`TRANSFER`를 유지한다.
+- 다만 MVP 거래 API에서는 `TRANSFER.categoryId`를 저장하지 않고 항상 `null`로 둔다.
 
 Tag
 - API는 문자열 배열
@@ -117,7 +117,7 @@ Tag
 - totalExpense
 - netSaving
 - transferVolume
-- inboxCount
+- inbox 큐(`needsReview=true`, 현재는 별도 거래 조회로 계산)
 
 이 지표의 포함/제외 규칙이 바뀌면 제품이 바뀌는 것이다.
 
@@ -150,7 +150,7 @@ Tag
 - URL/메서드
 - 요청/응답 구조
 - 페이지네이션 규칙
-- 날짜 범위 규칙(`from <= txDate < to`)
+- 날짜 범위 규칙(`from <= txDate <= to`)
 - 에러 코드(401/404/409/422)
 
 이렇게 하면 프론트는 "무엇을 받을지"를 믿고 화면을 만들고,

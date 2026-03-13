@@ -1,11 +1,11 @@
 # Personal Asset Management System
 
 도메인/설계 기준은 `PERSONAL_ASSET_PWA_GUIDE.md`를 기준으로 한다.
-초보자용 해설은 `explain.md`를 참고한다.
+초보자용 해설은 `docs/explain.md`를 참고한다.
 
 ## MVP Scope
 - 거래/계좌/카테고리/태그 관리
-- 리포트(summary/transfers)
+- 리포트(summary/transfers/cashflow/top-expense/balance trend)
 - CSV one-shot import
 - backup export/import(v1)
 - 인증 + user scope
@@ -26,14 +26,24 @@ docs/       OpenAPI, seed strategy, fixtures
 
 ## Environment Files
 복사해서 로컬 파일을 만든 뒤 값 입력:
-- `.env.example` -> `.env`
-- `.env.backend.example` -> `backend/.env.local` (실행 전에 쉘 env로 export)
-- `.env.frontend.example` -> `frontend/.env.local`
-- `.env.mcp.example` -> `.env.mcp` (MCP 도구용)
+
+| template | 복사 위치 | 용도 |
+| --- | --- | --- |
+| `.env.example` | `.env` | 로컬 공통 기본값(포트/DB 호스트/타임존) |
+| `infra/.env.example` | `infra/.env` 또는 `docker compose --env-file infra/.env.example` | Docker Postgres 컨테이너 환경 |
+| `.env.backend.example` | `backend/.env.local` | Spring Boot 런타임 환경 |
+| `.env.frontend.example` | `frontend/.env.local` | 프론트 API base override가 필요할 때만 사용 |
+| `.env.mcp.example` | `.env.mcp` | GitHub/Jira 등 MCP 도구용 시크릿 |
 
 참고:
 - Spring Boot는 `backend/.env.local`을 자동 로드하지 않는다.
 - 백엔드 실행 전 `.env.local`을 shell 환경변수로 주입하거나 IDE Run Configuration 환경변수로 설정한다.
+- `frontend/.env.local`은 기본값이 `/api/v1`라서, 프록시를 바꾸지 않으면 생략 가능하다.
+
+## Claude Code / MCP
+- 공유 가능한 Claude Code 설정은 `.claude/settings.json`, `.claude/commands/`, `.claude/agents/`에 있다.
+- 프로젝트 MCP 설정은 `.mcp.json`에 있다.
+- 개인 시크릿은 `.claude/settings.local.json`과 `.env.mcp`에만 두고 커밋하지 않는다.
 
 ## Local Run
 
@@ -125,4 +135,5 @@ BASE_REF=main bash scripts/contract/openapi_breaking_check.sh
 
 ## Seed/Data Notes
 - Seed strategy: `docs/SEED_STRATEGY.md`
+- Dev demo seed SQL: `backend/src/main/resources/db/seed/V9000__dev_seed_demo.sql`
 - Seed fixture files: `docs/seeds/*`

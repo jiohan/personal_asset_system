@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub"],
+      "env": {
+        "DATABASE_URL": "${DB_URL:-postgresql://asset:asset@localhost:5432/asset_db}"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-lc", "source .env.mcp 2>/dev/null; npx -y @modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"]
+    }
+  }
+}
