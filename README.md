@@ -1,7 +1,6 @@
 # Personal Asset Management System
 
 도메인/설계 기준은 `PERSONAL_ASSET_PWA_GUIDE.md`를 기준으로 한다.
-초보자용 해설은 `docs/explain.md`를 참고한다.
 
 ## MVP Scope
 - 거래/계좌/카테고리/태그 관리

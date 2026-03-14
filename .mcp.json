@@ -1,25 +1,55 @@
 {
   "mcpServers": {
-    "postgres": {
+    "filesystem": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@bytebase/dbhub"],
-      "env": {
-        "DATABASE_URL": "${DB_URL:-postgresql://asset:asset@localhost:5432/asset_db}"
-      }
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/jioha/projects/asset-management-system/frontend",
+        "/home/jioha/projects/asset-management-system/backend",
+        "/home/jioha/projects/asset-management-system/docs",
+        "/home/jioha/projects/asset-management-system/infra",
+        "/home/jioha/projects/asset-management-system/scripts"
+      ]
+    },
+    "git": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "/home/jioha/projects/asset-management-system"
+      ]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source .env.mcp 2>/dev/null; export DATABASE_URL=${DB_URL:-postgresql://asset:asset@localhost:5432/asset_db}; npx -y @bytebase/dbhub"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     },
     "github": {
       "type": "stdio",
       "command": "bash",
-      "args": ["-lc", "source .env.mcp 2>/dev/null; npx -y @modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-      }
+      "args": ["-lc", "source .env.mcp 2>/dev/null; npx -y @modelcontextprotocol/server-github"]
     },
     "fetch": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-fetch"]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-lc", "source .env.mcp 2>/dev/null; npx -y @upstash/context7-mcp"]
     }
   }
 }
